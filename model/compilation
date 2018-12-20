@@ -1,0 +1,3 @@
+gfortran T96.for Geopack-2008.for MAIN_T96.for -o T96.e
+gfortran Geopack-2008.for TA_2015_B.for MAIN_TA15.for -o TA15.e
+
