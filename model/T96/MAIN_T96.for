@@ -19,9 +19,9 @@ C
 
       DIMENSION PARMOD(10)
 
-      INTEGER, PARAMETER :: ounit=20
+      INTEGER, DIMENSION(3) :: ounit=(/20,30,40/)
       INTEGER, PARAMETER :: NX=319
-      INTEGER, PARAMETER :: NY=3
+      INTEGER, PARAMETER :: NY=2
       INTEGER, PARAMETER :: NZ=209
 C  Parameters T96_01
 C  Old param
@@ -30,10 +30,16 @@ C     REAL, PARAMETER :: Dst  = -16.0
 C     REAL, PARAMETER :: B0y  = 0.0
 C     REAL, PARAMETER :: B0z  = 3.8
 
+
+C     New parameters by Brecht
+      REAL, DIMENSION(3) :: DstList = (/-28.0, -28.0, -28.0/)
+      REAL, DIMENSION(3) :: B0zList = (/3.8, 8.0, -15.0/)
+      CHARACTER (LEN = 13), DIMENSION(3) :: Filename
+
       REAL, PARAMETER :: PDYN = 1.15
-      REAL, PARAMETER :: Dst  = -28.0 
+C      REAL, PARAMETER :: Dst  = -28.0
       REAL, PARAMETER :: B0y  = 0.0
-      REAL, PARAMETER :: B0z  = 3.8
+C      REAL, PARAMETER :: B0z  = 3.8
 c      REAL, PARAMETER :: B0z  = 0.0
 
       REAL :: BXGSW = 0.0
@@ -62,6 +68,9 @@ c      REAL, PARAMETER :: B0z  = 0.0
 c      REAL :: dy = LY/(NY-1)
       REAL :: dz = LZ/(NZ-1)
 
+      Filename = (/"T96.FD.01.DAT", "T96.FD.02.DAT", "T96.FD.03.DAT"/)
+
+
 C
 C   First, call RECALC_08, to define the main field coefficients and, hence, the magnetic
 C      moment of the geodipole for IYEAR=1997 and IDAY=350.
@@ -74,49 +83,51 @@ C
 c
 c   Enter input parameters for T96_01:
 c
-      PARMOD(1) = PDYN
-      PARMOD(2) = Dst
-      PARMOD(3) = B0y
-      PARMOD(4) = B0z
+
+      DO ll=1,3
+        PARMOD(1) = PDYN
+        PARMOD(2) = DstList(ll) 
+        PARMOD(3) = B0y
+        PARMOD(4) = B0zList(ll)
 C
 C  Specify the dipole tilt angle PS, its sine SPS and cosine CPS, entering
 c    in the common block /GEOPACK1/:
 C
-      PSI=0.
-      SPS=SIN(PSI)
-      CPS=COS(PSI)
+        PSI=0.
+        SPS=SIN(PSI)
+        CPS=COS(PSI)
 
-      IOPT=0
+        IOPT=0
 C           (IN THIS EXAMPLE IOPT IS JUST A DUMMY PARAMETER,
 C                 WHOSE VALUE DOES NOT MATTER)
 c
 c  Trace the field line:
 c
-      OPEN (UNIT=ounit,FILE="BXZ.T96.DAT",ACTION="write",
-     *      STATUS="replace")
+        OPEN (UNIT=ounit(ll),FILE=Filename(ll),ACTION="write",
+     *        STATUS="replace")
 
-      DO k = 1, NZ
-        DO j = 1, NY
-          DO i = 1, NX
+        DO k = 1, NZ
+          DO j = 1, NY
+            DO i = 1, NX
 
-            XGSW = Xbeg + (i-1)*dx
-            YGSW = Ybeg + (i-1)*dy
-            ZGSW = Zbeg + (k-1)*dz
+              XGSW = Xbeg + (i-1)*dx
+              YGSW = Ybeg + (i-1)*dy
+              ZGSW = Zbeg + (k-1)*dz
 
-            R2 = XGSW*XGSW 
+              R2 = XGSW*XGSW 
      *         + YGSW*YGSW 
      *         + ZGSW*ZGSW
 
-            X = XGSW
-            Y = YGSW
-            IF (R2.LT.RE2) THEN
-              D2 = XGSW*XGSW+YGSW*YGSW
-              Z  = SQRT(D2 + RE2)
-            ELSE
-              Z = ZGSW
-            ENDIF
+              X = XGSW
+              Y = YGSW
+              IF (R2.LT.RE2) THEN
+                D2 = XGSW*XGSW+YGSW*YGSW
+                Z  = SQRT(D2 + RE2)
+              ELSE
+                Z = ZGSW
+              ENDIF
 
-            CALL T96_01 (IOPT,PARMOD,PSI,X,Y,Z,BXGSW,BYGSW,BZGSW)
+              CALL T96_01 (IOPT,PARMOD,PSI,X,Y,Z,BXGSW,BYGSW,BZGSW)
 
 C -- Routines to include internal B field:
 c            CALL IGRF_GSW_08 (XGSW,YGSW,ZGSW,
@@ -124,13 +135,13 @@ c     *                   HXGSW,HYGSW,HZGSW)
 c            CALL DIP_08 (XGSW,YGSW,ZGSW,
 c     *                   HXGSW,HYGSW,HZGSW)
 C --
-            WRITE(ounit,*) XGSW,YGSW,ZGSW,
+              WRITE(ounit(ll),*) XGSW,YGSW,ZGSW,
      *                     BXGSW+HXGSW,BYGSW+HYGSW,BZGSW+HZGSW
+            ENDDO
           ENDDO
         ENDDO
+        CLOSE(ounit(ll))
       ENDDO
-
-      CLOSE(ounit)
 
       END
 
