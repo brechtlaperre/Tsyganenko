@@ -117,7 +117,7 @@ c
             DO i = 1, NX
 
               XGSW = Xbeg + (i-1)*dx
-              YGSW = Ybeg + (i-1)*dy
+              YGSW = Ybeg + (j-1)*dy
               ZGSW = Zbeg + (k-1)*dz
 
               R2 = XGSW*XGSW 
