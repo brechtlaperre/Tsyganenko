@@ -31,7 +31,7 @@ C     REAL, PARAMETER :: PDYN = 1.15
 C     REAL, PARAMETER :: Dst  = -16.0 
 C     REAL, PARAMETER :: B0y  = 0.0
 C     REAL, PARAMETER :: B0z  = 3.8
-c      REAL, PARAMETER :: B0z  = 0.0
+c     REAL, PARAMETER :: B0z  = 0.0
 
       REAL :: BXGSW = 0.0
       REAL :: BYGSW = 0.0
