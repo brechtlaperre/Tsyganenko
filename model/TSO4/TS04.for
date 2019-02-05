@@ -17,7 +17,7 @@ C       (ii)  DATA C_SY statement in SUBROUTINE FULL_RC, and
 c       (iii) DATA A statement in SUBROUTINE T04_s.
 C  This correction was needed due to a bug found in the symmetric ring current module.
 c   Its impact can be significant (up to ~20 nT) only in the innermost magnetosphere (R<=2)
-      and only for strongly disturbed conditions; otherwise, the change in the model field
+c      and only for strongly disturbed conditions; otherwise, the change in the model field
 c      does not exceed a few percent.
 c
 c--------------------------------------------------------------------
