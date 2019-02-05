@@ -116,7 +116,7 @@ C                 WHOSE VALUE DOES NOT MATTER)
 c
 c  Trace the field line:
 c
-        OPEN (UNIT=ounit,FILE=filename,ACTION="write",
+        OPEN (UNIT=ounit,FILE="output/"//filename,ACTION="write",
      *        STATUS="replace")
 
         DO k = 1, NZ
