@@ -7,26 +7,34 @@ Created on Wed Nov  4 12:33:00 2015
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.close("all")
+NX=192
+NY=1
+NZ=192
 
-NX=319
-NY=2
-NZ=209
-di=83081.8
-R_sim=12742.0
+filepath = '/home/brecht/Documents/PhD/Tsyganenko_brecht/model/TA15/output/'
+filename = ['OUT00.DAT', 'OUT01.DAT', 'OUT02.DAT', 'OUT03.DAT']
 
-# Load positions
+def plotMagneticField(source, NX, NY, NZ, background=False):
+    """Make plot of the output of Tsyganenko
 
-print(" Read file")
-filepath = '/home/brecht/Documents/PhD/Tsyganenko_brecht/model/T96/'
-filename = ['T96.FD.01.DAT', 'T96.FD.02.DAT', 'T96.FD.03.DAT']
+    INPUT:
+        source: path and filename of source file
+        NX: number of steps in x-direction used in the model
+        NY: number of steps in y-direction used in the model
+        NZ: number of steps in z-direction used in the model
+        background: boolean indicating if the earths background magnetic field is included in the results
 
-for f in filename:
+    OUTPUT:
+        Plot of the total magnetic field, among other plots
+    """
 
-    plt.close("all")
-    source = filepath + f
+    #Arbitrary values used for rescaling
+    di=83081.8
+    R_sim=12742.0
+
     x, y, z, Btx, Bty, Btz = np.genfromtxt(source, unpack=True)
 
+    # Reshape results back to the dimensions used in the original program
     x   = x.reshape((NZ,NY,NX))
     y   = y.reshape((NZ,NY,NX))
     z   = z.reshape((NZ,NY,NX))
@@ -34,14 +42,16 @@ for f in filename:
     Bty = Bty.reshape((NZ,NY,NX))
     Btz = Btz.reshape((NZ,NY,NX))
 
-    x   = x[:-1,1,:-1] * (R_sim/di)
-    y   = y[:-1,1,:-1] * (R_sim/di)
-    z   = z[:-1,1,:-1] * (R_sim/di)
-    Btx = Btx[:-1,1,:-1]
-    Bty = Bty[:-1,1,:-1]
-    Btz = Btz[:-1,1,:-1]
+    # Reverse x and z axis and rescale the coordinates
+    x   = x[:-1,0,:-1] * (R_sim/di)
+    y   = y[:-1,0,:-1] * (R_sim/di)
+    z   = z[:-1,0,:-1] * (R_sim/di)
+    Btx = Btx[:-1,0,:-1]
+    Bty = Bty[:-1,0,:-1]
+    Btz = Btz[:-1,0,:-1]
 
     # Scale external B field
+    #TODO This needs explanation of why this must happen
     print(" Scale external field")
     L = 2.0e-6
     Btx = L*Btx
@@ -49,11 +59,13 @@ for f in filename:
     Btz = L*Btz
 
     # Add Background B field (Verify that it is not already given in Tsyganenko)
-    B0x = np.zeros(np.shape(x))
-    B0y = np.zeros(np.shape(y))
-    #B0z = 7.444642e-5  #Mercury
-    B0z = 0.0001 * np.ones(np.shape(z))#Earth
-    B0z[x<1.98]=0.0
+    #TODO Check which models do this
+    if ~background:
+        B0x = np.zeros(np.shape(x))
+        B0y = np.zeros(np.shape(y))
+        #B0z = 7.444642e-5  #Mercury
+        B0z = 0.0001 * np.ones(np.shape(z)) #Earth
+        B0z[x<1.98]=0.0
 
     # Calculate dipolar field using the dipolar moment
     print(" Compute dipole")
@@ -74,9 +86,14 @@ for f in filename:
 
     # Add external + internal (dipolar) B fields (+ IMF if not given in Tsyganenko)
     print(" Add dipole")
-    Bx = Btx + BDx + B0x
-    By = Bty + BDy + B0y
-    Bz = Btz + BDz + B0z
+    if ~background:
+        Bx = Btx + BDx + B0x
+        By = Bty + BDy + B0y
+        Bz = Btz + BDz + B0z
+    else:
+        Bx = Btx + BDx
+        By = Bty + BDy
+        Bz = Btz + BDz
 
     # Calculate B fields magniude
     Btm = np.sqrt(Btx*Btx + Bty*Bty + Btz*Btz)
@@ -116,5 +133,8 @@ for f in filename:
     plt.plot(x[2,:],np.log10(Bm[2,:]))
     plt.title("Magnetic field strength")
     """
-    print(" and show")
     plt.show()
+
+
+for files in filename:
+    plotMagneticField(filepath+files, NX, NY, NZ)
