@@ -44,6 +44,6 @@ BXZ.TA15.DAT
 
 * ~~Try to use f2py to run the model in python~~ => F2py gives errors that seem difficult to fix
 * Install python package containing Tsyganenko: <https://github.com/vtsuperdarn/davitpy>
-    * Still runs on python 2.7
-    * Asks to compile a piece of matplotlib code which seems to fail on my machine
+    1. Still runs on python 2.7
+    2. Asks to compile a piece of matplotlib code which seems to fail on my machine
 * Try to use a Fortran for loop to run the experiments

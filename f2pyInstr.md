@@ -1,1 +1,0 @@
-f2py seems to not work directly? problems with directories, etc... Should find out whats wrong
