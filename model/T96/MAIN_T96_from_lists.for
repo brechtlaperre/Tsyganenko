@@ -1,6 +1,6 @@
 C******************************************************************************
 C
-      PROGRAM EXAMPLE2
+      PROGRAM T96LISTS
 
 C  Unlike in the EXAMPLE1, here we "manually" specify the tilt angle and its sine/cosine.
 c  To forward them to the coordinate transformation subroutines, we need to explicitly

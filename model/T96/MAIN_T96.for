@@ -1,6 +1,6 @@
 C******************************************************************************
 C
-      PROGRAM EXAMPLE2
+      PROGRAM T96FROMFILE
 
 C  Unlike in the EXAMPLE1, here we "manually" specify the tilt angle and its sine/cosine.
 c  To forward them to the coordinate transformation subroutines, we need to explicitly
@@ -19,27 +19,18 @@ C
 
       DIMENSION PARMOD(10)
 
-      INTEGER, DIMENSION(3) :: ounit=(/20,30,40/)
-      INTEGER, PARAMETER :: NX=319
-      INTEGER, PARAMETER :: NY=2
-      INTEGER, PARAMETER :: NZ=209
+      INTEGER, PARAMETER :: iunit = 20
+      INTEGER, PARAMETER :: ounit = 21
+      INTEGER, PARAMETER :: NX    = 319
+      INTEGER, PARAMETER :: NY    = 2
+      INTEGER, PARAMETER :: NZ    = 209
+
 C  Parameters T96_01
 C  Old param
 C     REAL, PARAMETER :: PDYN = 1.15
 C     REAL, PARAMETER :: Dst  = -16.0 
 C     REAL, PARAMETER :: B0y  = 0.0
 C     REAL, PARAMETER :: B0z  = 3.8
-
-
-C     New parameters by Brecht
-      REAL, DIMENSION(3) :: DstList = (/-28.0, -28.0, -28.0/)
-      REAL, DIMENSION(3) :: B0zList = (/3.8, 8.0, -15.0/)
-      CHARACTER (LEN = 13), DIMENSION(3) :: Filename
-
-      REAL, PARAMETER :: PDYN = 1.15
-C      REAL, PARAMETER :: Dst  = -28.0
-      REAL, PARAMETER :: B0y  = 0.0
-C      REAL, PARAMETER :: B0z  = 3.8
 c      REAL, PARAMETER :: B0z  = 0.0
 
       REAL :: BXGSW = 0.0
@@ -68,8 +59,14 @@ c      REAL, PARAMETER :: B0z  = 0.0
 c      REAL :: dy = LY/(NY-1)
       REAL :: dz = LZ/(NZ-1)
 
-      Filename = (/"T96.FD.01.DAT", "T96.FD.02.DAT", "T96.FD.03.DAT"/)
+      REAL :: PDYN
+      REAL :: Dst
+      REAL :: B0y
+      REAL :: B0z
 
+      INTEGER :: ID
+      CHARACTER(len=10) :: filename
+      INTEGER :: Status
 
 C
 C   First, call RECALC_08, to define the main field coefficients and, hence, the magnetic
@@ -84,11 +81,27 @@ c
 c   Enter input parameters for T96_01:
 c
 
-      DO ll=1,3
+      OPEN (UNIT=iunit,FILE="T96_input",ACTION="read")
+      read(iunit,*) ! skip header of the file
+
+      DO 
+        read(iunit,*,IOSTAT=Status) ID, PDYN, DST, B0y, B0z
+
+        IF (Status < 0) THEN
+! In case end of file is reached
+          EXIT
+        END IF
+
+        IF (ID < 10) THEN
+          write (filename, "(A3,I1,I1,A4)") "OUT",0,ID,".DAT"
+        ELSE
+          write (filename, "(A3,I2,A4)") "OUT",ID,".DAT"
+        ENDIF
+
         PARMOD(1) = PDYN
-        PARMOD(2) = DstList(ll) 
+        PARMOD(2) = Dst
         PARMOD(3) = B0y
-        PARMOD(4) = B0zList(ll)
+        PARMOD(4) = B0z
 C
 C  Specify the dipole tilt angle PS, its sine SPS and cosine CPS, entering
 c    in the common block /GEOPACK1/:
@@ -103,7 +116,7 @@ C                 WHOSE VALUE DOES NOT MATTER)
 c
 c  Trace the field line:
 c
-        OPEN (UNIT=ounit(ll),FILE=Filename(ll),ACTION="write",
+        OPEN (UNIT=ounit,FILE=filename,ACTION="write",
      *        STATUS="replace")
 
         DO k = 1, NZ
@@ -135,12 +148,12 @@ c     *                   HXGSW,HYGSW,HZGSW)
 c            CALL DIP_08 (XGSW,YGSW,ZGSW,
 c     *                   HXGSW,HYGSW,HZGSW)
 C --
-              WRITE(ounit(ll),*) XGSW,YGSW,ZGSW,
+              WRITE(ounit,*) XGSW,YGSW,ZGSW,
      *                     BXGSW+HXGSW,BYGSW+HYGSW,BZGSW+HZGSW
             ENDDO
           ENDDO
         ENDDO
-        CLOSE(ounit(ll))
+        CLOSE(ounit)
       ENDDO
 
       END
