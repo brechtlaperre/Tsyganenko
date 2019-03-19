@@ -40,10 +40,16 @@ gfortran Geopack-2008.for TA_2015_B.for MAIN_TA15.for -o TA15.e
 __Output files:__
 BXZ.TA15.DAT
 
+## Tried
+
+- Try to use ```f2py``` to run the model in python => ```f2py``` gives errors that seem difficult to fix
+- Install python package containing Tsyganenko: <https://github.com/vtsuperdarn/davitpy>
+    - Still runs on python 2.7
+    - Asks to compile a piece of matplotlib code which seems to fail on my machine
+
 ## TODO
 
-* ~~Try to use f2py to run the model in python~~ => F2py gives errors that seem difficult to fix
-* Install python package containing Tsyganenko: <https://github.com/vtsuperdarn/davitpy>
-    1. Still runs on python 2.7
-    2. Asks to compile a piece of matplotlib code which seems to fail on my machine
-* Try to use a Fortran for loop to run the experiments
+- [x] Changed Fortran code to read a specific input file.
+- [ ] Use python to generate this csv input file
+- [ ] Give this file to fortran code, which generates a result for each line
+- [ ] Read results via python and use them to perform data assimilation
