@@ -1,7 +1,6 @@
 # Tsyganenko models
 
 ## T96
--------------
 __Files containing subroutines__
 Geopack-2008.for
 T96.for
