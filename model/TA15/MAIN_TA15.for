@@ -3,10 +3,6 @@ C
       PROGRAM EXAMPLE2
 
       IMPLICIT NONE
-c be sure to include an EXTERNAL statement with the names of (i) a magnetospheric
-c external field model and (ii) Earth's internal field model.
-c
-C
       REAL ::           AA(10),SPS,CPS,BB(3),PSI,CC(18)
       COMMON /GEOPACK1/ AA,SPS,CPS,BB,PSI,CC
 C 

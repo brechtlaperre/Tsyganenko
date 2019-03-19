@@ -63,7 +63,7 @@ def plotMagneticField(source, NX, NY, NZ, background=False):
     if ~background:
         B0x = np.zeros(np.shape(x))
         B0y = np.zeros(np.shape(y))
-        #B0z = 7.444642e-5  #Mercury
+        # B0z = 7.444642e-5  #Mercury
         B0z = 0.0001 * np.ones(np.shape(z)) #Earth
         B0z[x<1.98]=0.0
 

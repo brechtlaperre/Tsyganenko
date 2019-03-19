@@ -1,9 +1,7 @@
-# Tsyganenko model file explanation
+# Tsyganenko models
 
-## Models
-
-### T96
-
+## T96
+-------------
 __Files containing subroutines__
 Geopack-2008.for
 T96.for
@@ -16,11 +14,13 @@ __Code for compiling:__
 ```bash
 gfortran T96.for Geopack-2008.for MAIN_T96.for -o T96.e
 ```
+__Input files. The program reads input parameters from here:__
+T96_input
 
 __Output files__
 BXZ.T96.DAT
 
-### TA15
+## TA15
 
 __Files containing subroutines__
 Geopack-2008.for
@@ -36,6 +36,8 @@ __Code for compiling:__
 ```bash
 gfortran Geopack-2008.for TA_2015_B.for MAIN_TA15.for -o TA15.e
 ```
+
+__Input files. The program reads input parameters from here:__ TA15_input
 
 __Output files:__
 BXZ.TA15.DAT
