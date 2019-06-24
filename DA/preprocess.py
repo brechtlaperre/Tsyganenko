@@ -1,16 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Nov  4 12:33:00 2015
+import sys 
 
-@author: murcielago
-"""
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def compute_dipolar(x,y,z):
     # Calculate dipolar field using the dipolar moment
-    print(" Compute dipole")
     Mx = 0.0
     My = 0.0
     Mz = -2e-4
@@ -55,7 +49,12 @@ def read_and_parse(source, nx, ny, nz, background=False):
         background: boolean indicating if the earths background magnetic field is included in the results
 
     OUTPUT:
-        tuple of the grid, tuple of external B, tuple of dipole B, tuple of background B, tuple of total B, tuple of magnitude of B
+        1. tuple of the grid (x, y, z)
+        2. tuple of external B (x, y, z)
+        3. tuple of dipole B (x, y, z)
+        4. tuple of background B (x, y, z)
+        5. tuple of total B (x, y, z)
+        6. tuple of magnitude of B (B_tot, B_dip, B_ext)
     """
     #Arbitrary values used for rescaling
     di=83081.8
@@ -82,7 +81,6 @@ def read_and_parse(source, nx, ny, nz, background=False):
 
     # Scale external B field
     #TODO This needs explanation of why this must happen
-    print(" Scale external field")
     L = 2.0e-6
     Btx = L*Btx
     Bty = L*Bty
@@ -97,7 +95,6 @@ def read_and_parse(source, nx, ny, nz, background=False):
     BDx, BDy, BDz = compute_dipolar(x, y, z)
 
     # Add external + internal (dipolar) B fields (+ IMF if not given in Tsyganenko)
-    print(" Add dipole")
     Bx = Btx + BDx + B0x
     By = Bty + BDy + B0y
     Bz = Btz + BDz + B0z
@@ -108,61 +105,8 @@ def read_and_parse(source, nx, ny, nz, background=False):
     BDm = np.sqrt(BDx*BDx + BDy*BDy + BDz*BDz)
     Bm  = np.sqrt(Bx*Bx   + By*By   + Bz*Bz)
 
+    print('Parsed {}'.format(source))
     return (x, y, z), (Btx, Bty, Btz), (B0x, B0y, B0z), (Bx, By, Bz), (Btm, BDm, Bm)
 
-
-def plotMagneticField(x, y, Bx, By, Bm=None):
-   
-    
-    # Plot the total B field
-    plt.figure()
-    ax1 = plt.subplot(111)
-    ax1.streamplot(x, y, Bx, By, density=1.2, linewidth=2, color='k')
-    plt.show()
-    #p1 = ax1.pcolormesh(x, z, np.ma.log10(Btm/L/L))
-    #ax1.set(aspect=1, title='Tsyganenko magnetic field')
-    
-    #plt.colorbar(p1, ax=ax1)
-    """
-    plt.figure(2)
-    ax2 = plt.subplot(111)
-    ax2.streamplot(x, z, BDx+B0x, BDz+B0z, density=1.2, color='k')
-    #p2 = ax2.pcolormesh(x, z, np.ma.log10(BDm))
-    ax2.set(aspect=1, title='Dipole magnetic field')
-
-    #plt.colorbar(p2, ax=ax2)
-    """
-
-    
-    plt.figure(3)
-    ax3 = plt.subplot(111)
-    if Bm is not None:
-        p3 = ax3.pcolormesh(x, y, np.ma.log10(Bm), vmin=-5,vmax=1)
-    ax3.streamplot(x, y, Bx, By, density=2, color='k')
-    ax3.set(aspect=1, title='Total magnetic field')
-    plt.show()
-    #plt.colorbar(p3, ax=ax3)
-
-    """
-    plt.figure(4)
-    plt.plot(x[96,:],np.log10(Bm[96,:]))
-    plt.plot(x[2,:],np.log10(Bm[2,:]))
-    plt.title("Magnetic field strength")
-    """
-
 if __name__ == '__main__':
-    
-    NX=192
-    NY=1
-    NZ=192
-
-    filepath = '/home/brecht/Documents/PhD/Tsyganenko_brecht/model/TA15/output/'
-    filename = ['OUT00.DAT', 'OUT01.DAT', 'OUT02.DAT', 'OUT03.DAT']
-    for files in filename:
-        grid, _, _, total, size = read_and_parse(filepath+files, NX, NY, NZ)
-        print(size[0].shape)
-        plt.imshow(np.ma.log10(size[0]), vmin=-6,vmax=1)
-        plt.show()
-        #plotMagneticField(grid[0], grid[2], total[0], total[2], size[2])
-
-   
+    print('Preprocessing.py')
