@@ -1,17 +1,28 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import click
 
+def gen_init_states(base, parameter, mu, sigma, num=100):
 
+    init = base.loc[np.repeat(base.index.values, num)].reset_index(drop=True)
+    init[parameter] = init[parameter].apply(lambda x: x + x*np.random.normal(mu, sigma, size=None))
+    init[parameter] = init[parameter].apply(lambda x: round(x*100)/100)
+    
+    return init
 
+@click.command()
+@click.argument('column', type=str)
+@click.argument('mu', type=float, default=0)
+@click.argument('sigma', type=float, default=0.05)
+@click.argument('amount', type=int, default=100)
+def main(column, mu, sigma, amount):
+    base = pd.DataFrame(columns=['ID', 'PDYN', 'B0y', 'B0z', 'XIND'], 
+                        data=[[0, 3.0, 1, 8.0, 1.0]])
+    base = base.set_index(['ID'])
+    init = gen_init_states(base, column, mu, sigma, amount)
+
+    init.to_csv('DA/input/TA15_input')
 
 if __name__ == '__main__':
-
-
-    base = pd.DataFrame(data=[[0, 1.0, 0.0, 3.8, 1.0]], columns=['ID', 'PDYN','B0y','B0z','XIND'])
-    base = base.set_index(['ID'])
-
-    init = base.loc[np.repeat(base.index.values, 100)].reset_index(drop=True)
-    init['PDYN'] = init['PDYN'].apply(lambda x: np.random.normal(loc=6, scale=3, size=None)*x)
-    init['PDYN'] = init['PDYN'].apply(lambda x: round(x*100)/100 if x > 0 else 1)
-    
-    init.to_csv('DA/input/TA15_input')
+    main()

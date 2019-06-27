@@ -21,7 +21,10 @@ C
       INTEGER, PARAMETER :: iunit=21
       INTEGER :: IOPT
       INTEGER :: i, k
-      INTEGER, PARAMETER :: dim = 192
+      INTEGER, PARAMETER :: DIM=192 
+
+      REAL*8, DIMENSION(DIM,DIM) :: XGSW
+      REAL*8, DIMENSION(DIM,DIM) :: ZGSW
 
       REAL*8 :: PS    = 0.D0
       REAL*8 :: BXGSW = 0.D0
@@ -30,9 +33,6 @@ C
       REAL   :: HXGSW = 0.D0
       REAL   :: HYGSW = 0.D0
       REAL   :: HZGSW = 0.D0
-
-      REAL*8, DIMENSION(dim,dim) :: XGSW
-      REAL*8, DIMENSION(dim,dim) :: ZGSW
 
       REAL*8 :: Xbeg = -19.2D0
       REAL*8 :: Zbeg = -19.2D0
@@ -47,15 +47,13 @@ C
       INTEGER :: ID
       CHARACTER(len=10) :: filename
 C XIND: solar-wind-magnetosphere driving index, 
-C Typical values of XIND: between 0 (quiet) and 2 (strongly disturbed)
-
-      DO k = 1, 192
-        DO i = 1, 192
+C Typical values of XIND: between 0 (quiet) and 2 (strongly disturbed)      
+      DO k = 1, DIM
+        DO i = 1, DIM
           XGSW (i, k) = Xbeg + (i-1)*dx
           ZGSW (i, k) = Zbeg + (k-1)*dz
         ENDDO
       ENDDO
-
 C
 C   First, call RECALC_08, to define the main field coefficients and, hence, the magnetic
 C      moment of the geodipole for IYEAR=1997 and IDAY=350.
@@ -75,12 +73,17 @@ C
 
       DO
         read(iunit,*,IOSTAT=Status) ID, PDYN, B0y, B0z, XIND
+        
+        PS    = 0.D0
+        BXGSW = 0.D0
+        BYGSW = 0.D0
+        BZGSW = 0.D0    
 
         IF (Status < 0) THEN
           ! In case end of file is reached
           EXIT
         END IF
-
+C Specify name of output file
         IF (ID < 10) THEN
           write (filename, "(A3,I1,I1,A4)") "OUT",0,ID,".DAT"
         ELSE
@@ -109,8 +112,8 @@ c
         OPEN (UNIT=ounit,FILE="output/"//filename,ACTION="write",
      *        STATUS="replace")
 
-        DO k = 1, 192
-          DO i = 1, 192
+        DO k = 1, DIM
+          DO i = 1, DIM
             CALL TA_2015_B (IOPT,PARMOD,PS,
      *                     XGSW(i,k),0.D0,ZGSW(i,k),
      *                     BXGSW,BYGSW,BZGSW)
