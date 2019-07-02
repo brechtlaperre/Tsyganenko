@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import click
 
 def gen_init_states(base, parameter, mu, sigma, num=100):
@@ -17,7 +16,23 @@ def gen_init_states(base, parameter, mu, sigma, num=100):
 @click.argument('sigma', type=float, default=0.05)
 @click.argument('amount', type=int, default=100)
 def main(column, mu, sigma, amount):
-    base = pd.DataFrame(columns=['ID', 'PDYN', 'B0y', 'B0z', 'XIND'], 
+    '''Generates Tsyganenko inputfile named TA15_input
+    Generates inputfile useable by model TA15. 
+    It varies the value in column given, by picking randomly from a gaussian distribution
+    The other values remain fixed.
+    Input:
+        column: name of variable to be varied 
+        mu: mean value of the gaussian distribution
+        sigma: standard deviation of gaussian distribution
+        amount: Total number of inputs - size of the ensemble
+    Output:
+        file named TA15_output, useable by model TA15.
+    '''
+    columns = ['ID', 'PDYN', 'B0y', 'B0z', 'XIND']
+
+    assert column in columns, "Error, unknown variable {}. Known variables: {}".format(column, columns)
+
+    base = pd.DataFrame(columns=columns, 
                         data=[[0, 3.0, 1, 8, 1.0]])
     base = base.set_index(['ID'])
     init = gen_init_states(base, column, mu, sigma, amount)

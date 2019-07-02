@@ -1,6 +1,32 @@
-# Tsyganenko models
+# Tsyganenko Data Assimilation
 
-## T96
+__author:__ Brecht Laperre  
+__supervisor:__ Giovanni Lapenta  
+__collaborator:__ Maria-Elena Innocenti
+
+## Status
+
+Currently, the TA15 model is modified to read its initial conditions from a file named 'TA15_input'. This file is generated from the python file 'generate_input.py'. 
+
+In order to run an experiment, set the wanted conditions in the Makefile and run 
+```
+make all
+```
+
+
+## TODO
+
+- [x] Changed Fortran code to read a specific input file.
+- [x] Use python to generate this csv input file
+- [x] Give this file to fortran code, which generates a result for each line
+- [x] Read results via python and use them to perform data assimilation
+- [x] Automate process using Makefile
+- [ ] Allow multiple variables to be varied
+- [ ] Allow basevalues to be determined by input
+
+## Tsyganenko model - file info
+
+### T96
 __Files containing subroutines__
 Geopack-2008.for
 T96.for
@@ -19,7 +45,7 @@ T96_input
 __Output files__
 BXZ.T96.DAT
 
-## TA15
+### TA15
 
 __Files containing subroutines__
 Geopack-2008.for
@@ -41,16 +67,3 @@ __Input files. The program reads input parameters from here:__ TA15_input
 __Output files:__
 BXZ.TA15.DAT
 
-## Tried
-
-- Try to use ```f2py``` to run the model in python => ```f2py``` gives errors that seem difficult to fix
-- Install python package containing Tsyganenko: <https://github.com/vtsuperdarn/davitpy>
-    - Still runs on python 2.7
-    - Asks to compile a piece of matplotlib code which seems to fail on my machine
-
-## TODO
-
-- [x] Changed Fortran code to read a specific input file.
-- [ ] Use python to generate this csv input file
-- [ ] Give this file to fortran code, which generates a result for each line
-- [ ] Read results via python and use them to perform data assimilation
