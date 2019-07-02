@@ -163,6 +163,6 @@ if __name__ == '__main__':
         print(size[0].shape)
         plt.imshow(np.ma.log10(size[0]), vmin=-6,vmax=1)
         plt.show()
-        #plotMagneticField(grid[0], grid[2], total[0], total[2], size[2])
+        plotMagneticField(grid[0], grid[2], total[0], total[2], size[0])
 
    

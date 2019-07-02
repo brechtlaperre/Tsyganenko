@@ -1,7 +1,5 @@
 import sys 
-
 import numpy as np
-
 
 def compute_dipolar(x,y,z):
     # Calculate dipolar field using the dipolar moment

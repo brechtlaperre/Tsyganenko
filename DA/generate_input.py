@@ -6,7 +6,7 @@ import click
 def gen_init_states(base, parameter, mu, sigma, num=100):
 
     init = base.loc[np.repeat(base.index.values, num)].reset_index(drop=True)
-    init[parameter] = init[parameter].apply(lambda x: x + x*np.random.normal(mu, sigma, size=None))
+    init[parameter] = np.random.normal(mu, sigma, size=init.shape[0])
     init[parameter] = init[parameter].apply(lambda x: round(x*100)/100)
     
     return init
@@ -18,7 +18,7 @@ def gen_init_states(base, parameter, mu, sigma, num=100):
 @click.argument('amount', type=int, default=100)
 def main(column, mu, sigma, amount):
     base = pd.DataFrame(columns=['ID', 'PDYN', 'B0y', 'B0z', 'XIND'], 
-                        data=[[0, 3.0, 1, 8.0, 1.0]])
+                        data=[[0, 3.0, 1, 8, 1.0]])
     base = base.set_index(['ID'])
     init = gen_init_states(base, column, mu, sigma, amount)
 
