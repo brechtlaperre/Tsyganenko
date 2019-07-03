@@ -13,7 +13,6 @@ In order to run an experiment, set the wanted conditions in the Makefile and run
 make all
 ```
 
-
 ## TODO
 
 - [x] Changed Fortran code to read a specific input file.
