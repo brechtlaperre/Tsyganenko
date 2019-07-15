@@ -13,11 +13,14 @@ def accumulate_values(result, ux, uxx, uxy, x, y):
     if ux is None:
         ux = result
         uxx = np.multiply(result, result)
-        uxy = result*result[x, y]
+        uxy = np.zeros((ux.shape[0], ux.shape[1], len(x)))
+        for i, locx in enumerate(x):
+            uxy[:, :, i] = result*result[locx, y[i]]
     else:
         ux += result
         uxx += np.multiply(result, result)
-        uxy += result*result[x, y]
+        for i, locx in enumerate(x):
+            uxy[:, :, i] += result*result[locx, y[i]]
 
     return ux, uxx, uxy
 
@@ -55,22 +58,28 @@ def get_results(folder, nx, ny, nz, x, y):
 
 def compute_domain(ux, uxx, uxy, x, y):
     var_x = uxx - np.multiply(ux, ux)
-    var_y = var_x[x, y]
-    cov = uxy - ux*(ux[x, y])
-    return cov / np.sqrt(np.abs(var_x*var_y))
+    var_y = np.zeros((len(x)))
+    cov = np.zeros((var_x.shape[0], var_x.shape[1], len(x)))
+    for i, _ in enumerate(x):
+        var_y[i] = var_x[x[i], y[i]]
+        cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], y[i]])
+        cov[:, :, i] = cov[:, :, i] / np.sqrt(np.abs(var_x*var_y[i]))
+    return cov
 
 
-def show_and_save(cor, grid, x, y, note=''):
-    fig, ax = plt.subplots(1, 1)
-    surf = ax.contourf(grid[0], grid[2], cor)
-    ax.plot(x, y, 'ro')
-    fig.colorbar(surf)
-    plt.title('{} Domain of influence on ({};{})'.format(note, x, y))
+def show_and_save(cor, grid, loc, note=''):
+    fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
+    fig.suptitle('Domain of influence {}'.format(note))
+    for i in range(loc.shape[0]):
+        x, y = loc[i, :]
+        surf = ax[i].contourf(grid[0], grid[2], cor[:, :, i])
+        ax[i].plot(x, y, 'ro')
+        fig.colorbar(surf, ax=ax[i])
+        ax[i].set_title('Coords ({};{})'.format(x, y))
     plt.show(block=False)
     a = input(' > Save image?: [no]')
     if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':
-        plt.close()
-        return
+        plt.close()            
     else:
         plt.savefig(a, dpi=1000, format='png')
         plt.close()
@@ -78,19 +87,35 @@ def show_and_save(cor, grid, x, y, note=''):
 
 @click.command()
 @click.argument('source', type=click.Path(exists=True))
-@click.argument('x_coord', type=int)
-@click.argument('z_coord', type=int)
-def main(source, x_coord, z_coord):
+@click.argument('coords', type=(int, int))
+@click.option('--extra', type=(int, int), multiple=True)
+#@click.argument('z_coord', type=int)
+def main(source, coords, extra):
     NX, NY, NZ = 192, 1, 192 # Dim is hard-coded for now
-    grid, cor_ext, cor_magn = get_results(source, NX, NY, NZ, x_coord, z_coord)
-
-    # Plot results
-    loc_x = round(100*grid[0][x_coord, z_coord])/100
-    loc_z = round(100*grid[2][x_coord, z_coord])/100
     
-    for key in cor_ext.keys():
-        show_and_save(cor_ext[key], grid, loc_x, loc_z, note=key)
-    show_and_save(cor_magn, grid, loc_x, loc_z)
+    # parse input
+    x_coords = [coords[0]]
+    z_coords = [coords[1]]
+    if len(extra) > 0:
+        for pair in extra:
+            x_coords.append(pair[0])
+            z_coords.append(pair[1])
+
+    x_coords = np.array(x_coords)
+    z_coords = np.array(z_coords)
+    
+    grid, cor_ext, cor_magn = get_results(source, NX, NY, NZ, x_coords, z_coords)
+
+    # Plot results    
+
+    loc = np.zeros((x_coords.shape[0], 2))
+    for i in range(len(extra) + 1):
+        loc[i, 0] = round(100*grid[0][x_coords[i], z_coords[i]])/100
+        loc[i, 1] = round(100*grid[2][x_coords[i], z_coords[i]])/100
+
+    for key in cor_ext:
+        show_and_save(cor_ext[key], grid, loc, note=key)
+    show_and_save(cor_magn, grid, loc, note='|B|')
 
 
 if __name__ == '__main__':

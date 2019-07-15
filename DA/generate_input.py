@@ -2,16 +2,20 @@ import pandas as pd
 import numpy as np
 import click
 
-def gen_init_states(base, parameter, mu, sigma, num=100):
+def gen_init_states(base, parameters, mu, sigma, num=100):
 
     init = base.loc[np.repeat(base.index.values, num)].reset_index(drop=True)
-    init[parameter] = np.random.normal(mu, sigma, size=init.shape[0])
-    init[parameter] = init[parameter].apply(lambda x: round(x*100)/100)
+    for p in parameters:
+        init[p] = np.random.normal(mu, sigma, size=init.shape[0])
+        if p == 'PDYN':
+            init[p] = init[p].apply(lambda x: abs(round(x*100)/100))
+        else:
+            init[p] = init[p].apply(lambda x: round(x*100)/100)
     
     return init
 
 @click.command()
-@click.argument('column', type=str)
+@click.argument('column', nargs=-1)
 @click.argument('mu', type=float, default=0)
 @click.argument('sigma', type=float, default=0.05)
 @click.argument('amount', type=int, default=100)
@@ -28,13 +32,14 @@ def main(column, mu, sigma, amount):
     Output:
         file named TA15_output, useable by model TA15.
     '''
-    columns = ['ID', 'PDYN', 'B0y', 'B0z', 'XIND']
+    columns = ['PDYN', 'B0y', 'B0z', 'XIND']
 
-    assert column in columns, "Error, unknown variable {}. Known variables: {}".format(column, columns)
+    for c in column:
+        assert c in columns, "Error, unknown variable {}. Known variables: {}".format(c, columns)
 
     base = pd.DataFrame(columns=columns, 
-                        data=[[0, 3.0, 1, 8, 1.0]])
-    base = base.set_index(['ID'])
+                        data=[[3.0, 1, 8, 1.0]])
+    base.index.name = 'ID'
     init = gen_init_states(base, column, mu, sigma, amount)
 
     init.to_csv('DA/input/TA15_input')
