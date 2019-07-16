@@ -1,3 +1,4 @@
+from math import ceil
 import os
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -68,20 +69,25 @@ def compute_domain(ux, uxx, uxy, x, y):
 
 
 def show_and_save(cor, grid, loc, note=''):
-    fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
+    if cor.shape[2] < 4:
+        fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
+    else:
+        fig, ax = plt.subplots(2, ceil(loc.shape[0]/2))
+    axes = np.ndenumerate(ax)
     fig.suptitle('Domain of influence {}'.format(note))
     for i in range(loc.shape[0]):
+        _, axi = axes.next()
         x, y = loc[i, :]
-        surf = ax[i].contourf(grid[0], grid[2], cor[:, :, i])
-        ax[i].plot(x, y, 'ro')
-        fig.colorbar(surf, ax=ax[i])
-        ax[i].set_title('Coords ({};{})'.format(x, y))
+        surf = axi.contourf(grid[0], grid[2], cor[:, :, i])
+        axi.plot(x, y, 'ro')
+        fig.colorbar(surf, ax=axi)
+        axi.set_title('Coords ({};{})'.format(x, y))
     plt.show(block=False)
     a = input(' > Save image?: [no]')
     if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':
         plt.close()            
     else:
-        plt.savefig(a, dpi=1000, format='png')
+        plt.savefig(a+'.png', dpi=800, format='png')
         plt.close()
 
 

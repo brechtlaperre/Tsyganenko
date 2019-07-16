@@ -2,24 +2,23 @@
 
 PYTHON=python3
 
-
 # Parameters
-COLUMN='PDYN' 'B0z'
+COLUMN='B0z'
 MU=0
 SIGMA=3
 ENSEMBLE_SIZE=30
 
-X1=96
+X1=98
 Y1=126
 
 X2=100
-Y2=180
+Y2=80
 
-X3=63
+X3=74
 Y3=185
 
-X4=150
-Y4=120
+X4=130
+Y4=43
 
 DA/input/TA15_input:
 	$(PYTHON) DA/generate_input.py $(COLUMN) -- $(MU) $(SIGMA) $(ENSEMBLE_SIZE)
