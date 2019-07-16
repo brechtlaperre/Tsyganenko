@@ -30,7 +30,7 @@ def compute_domain(ux, uxx, uxy, x, y):
         var_y[i] = var_x[x[i], y[i]]
         cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], y[i]])
         dv_ = np.sqrt(np.abs(var_x*var_y[i]))
-        div = np.where(dv_ > 10**-18, 1/dv_, 0)
+        div = np.where(dv_ > 0, 1/dv_, 0)
         cov[:, :, i] = np.multiply(cov[:, :, i], div)
     return cov
 
@@ -72,14 +72,15 @@ def show_and_save(cor, grid, loc, note=''):
     else:
         fig, ax = plt.subplots(2, ceil(loc.shape[0]/2))
     axes = np.ndenumerate(ax)
-    fig.suptitle('Domain of influence {}'.format(note))
     for i in range(loc.shape[0]):
         _, axi = axes.next()
         x, y = loc[i, :]
         surf = axi.contourf(grid[0], grid[2], cor[:, :, i])
         axi.plot(x, y, 'ro')
         fig.colorbar(surf, ax=axi)
-        axi.set_title('Coords ({};{})'.format(x, y))
+        axi.set_title('DoI {} at ({};{})'.format(note, x, y))
+    #fig.suptitle('Domain of influence {}'.format(note))
+    plt.tight_layout()
     plt.show(block=False)
     a = input(' > Save image?: [no]')
     if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':

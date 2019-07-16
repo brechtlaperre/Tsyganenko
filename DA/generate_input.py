@@ -8,7 +8,7 @@ def gen_init_states(base, parameters, mu, sigma, num=100):
     for p in parameters:
         init[p] = np.random.normal(mu, sigma, size=init.shape[0])
         if p == 'PDYN':
-            init[p] = init[p].apply(lambda x: abs(round(x*100)/100))
+            init[p] = init[p].apply(lambda x: abs(round(x*100)/100)+0.1)
         else:
             init[p] = init[p].apply(lambda x: round(x*100)/100)
     

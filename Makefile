@@ -3,7 +3,7 @@
 PYTHON=python3
 
 # Parameters
-COLUMN='B0z'
+COLUMN='PDYN'
 MU=0
 SIGMA=3
 ENSEMBLE_SIZE=30
