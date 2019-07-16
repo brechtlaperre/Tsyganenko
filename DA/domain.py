@@ -1,13 +1,9 @@
 from math import ceil
 import os
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import click
 from preprocess import read_and_parse
-
-import sys
-
 
 def accumulate_values(result, ux, uxx, uxy, x, y):
     
@@ -24,6 +20,19 @@ def accumulate_values(result, ux, uxx, uxy, x, y):
             uxy[:, :, i] += result*result[locx, y[i]]
 
     return ux, uxx, uxy
+
+
+def compute_domain(ux, uxx, uxy, x, y):
+    var_x = uxx - np.multiply(ux, ux)
+    var_y = np.zeros((len(x)))
+    cov = np.zeros((var_x.shape[0], var_x.shape[1], len(x)))
+    for i, _ in enumerate(x):
+        var_y[i] = var_x[x[i], y[i]]
+        cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], y[i]])
+        dv_ = np.sqrt(np.abs(var_x*var_y[i]))
+        div = np.where(dv_ > 10**-18, 1/dv_, 0)
+        cov[:, :, i] = np.multiply(cov[:, :, i], div)
+    return cov
 
 
 def get_results(folder, nx, ny, nz, x, y):
@@ -57,17 +66,6 @@ def get_results(folder, nx, ny, nz, x, y):
     return grid, cor_ext, cor_magn
 
 
-def compute_domain(ux, uxx, uxy, x, y):
-    var_x = uxx - np.multiply(ux, ux)
-    var_y = np.zeros((len(x)))
-    cov = np.zeros((var_x.shape[0], var_x.shape[1], len(x)))
-    for i, _ in enumerate(x):
-        var_y[i] = var_x[x[i], y[i]]
-        cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], y[i]])
-        cov[:, :, i] = cov[:, :, i] / np.sqrt(np.abs(var_x*var_y[i]))
-    return cov
-
-
 def show_and_save(cor, grid, loc, note=''):
     if cor.shape[2] < 4:
         fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
@@ -95,7 +93,6 @@ def show_and_save(cor, grid, loc, note=''):
 @click.argument('source', type=click.Path(exists=True))
 @click.argument('coords', type=(int, int))
 @click.option('--extra', type=(int, int), multiple=True)
-#@click.argument('z_coord', type=int)
 def main(source, coords, extra):
     NX, NY, NZ = 192, 1, 192 # Dim is hard-coded for now
     
