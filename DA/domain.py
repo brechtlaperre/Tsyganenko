@@ -6,7 +6,7 @@ import click
 from preprocess import read_and_parse
 
 def accumulate_values(result, ux, uxx, uxy, x, y):
-    
+
     if ux is None:
         ux = result
         uxx = np.multiply(result, result)
@@ -46,7 +46,7 @@ def get_results(folder, nx, ny, nz, x, y):
         for file_ in files:
             if 'OUT' in file_:
                 total += 1   
-                grid, ext_B, _, _, magn = read_and_parse(root+'/' + file_, nx, ny, nz)
+                grid, ext_B, _, field, magn = read_and_parse(root+'/' + file_, nx, ny, nz)
                 for i, comp in enumerate(ext_B):
                     ext_ux[i], ext_uxx[i], ext_uxy[i] = accumulate_values(comp, ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
                 magn_ux, magn_uxx, magn_uxy = accumulate_values(magn[2], magn_ux, magn_uxx, magn_uxy, x, y)
@@ -63,38 +63,51 @@ def get_results(folder, nx, ny, nz, x, y):
         cor_ext[key] = compute_domain(ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
     cor_magn = compute_domain(magn_ux, magn_uxx, magn_uxy, x, y)
 
-    return grid, cor_ext, cor_magn
+    return grid, cor_ext, cor_magn, field
 
 
-def show_and_save(cor, grid, loc, note=''):
+def show_and_save(cor, grid, loc, field, varying, note, filename=None):
     if cor.shape[2] < 4:
         fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
     else:
         fig, ax = plt.subplots(2, ceil(loc.shape[0]/2))
     axes = np.ndenumerate(ax)
+    fig.suptitle('Varying {}, DoI of {}'.format(varying, note))
     for i in range(loc.shape[0]):
         _, axi = axes.next()
         x, y = loc[i, :]
         surf = axi.contourf(grid[0], grid[2], cor[:, :, i])
+        axi.set_xlim(np.min(grid[0]), np.max(grid[0]))
+        axi.set_ylim(np.min(grid[2]),np.max(grid[2]))
         axi.plot(x, y, 'ro')
         fig.colorbar(surf, ax=axi)
-        axi.set_title('DoI {} at ({};{})'.format(note, x, y))
+        axi.set_title('({}, {})'.format(x, y))
+        if field is not None:
+            axi.streamplot(grid[0], grid[2], field[0], field[2], density=.9, linewidth=1, color='white')
     #fig.suptitle('Domain of influence {}'.format(note))
-    plt.tight_layout()
+    #plt.tight_layout()
+    plt.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.26, hspace=0.25)
     plt.show(block=False)
-    a = input(' > Save image?: [no]')
-    if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':
-        plt.close()            
+    
+    if filename is None:
+        a = input(' > Save image?: [no]')
+        if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':
+            plt.close()            
+        else:
+            plt.savefig(a+'.png', dpi=800, format='png')
+            plt.close()
     else:
-        plt.savefig(a+'.png', dpi=800, format='png')
+        plt.savefig(filename+'.png', dpi=800, format='png')
         plt.close()
+
 
 
 @click.command()
 @click.argument('source', type=click.Path(exists=True))
+@click.argument('varying', type=str, nargs=-1)
 @click.argument('coords', type=(int, int))
 @click.option('--extra', type=(int, int), multiple=True)
-def main(source, coords, extra):
+def main(source, varying, coords, extra):
     NX, NY, NZ = 192, 1, 192 # Dim is hard-coded for now
     
     # parse input
@@ -108,19 +121,41 @@ def main(source, coords, extra):
     x_coords = np.array(x_coords)
     z_coords = np.array(z_coords)
     
-    grid, cor_ext, cor_magn = get_results(source, NX, NY, NZ, x_coords, z_coords)
+    grid, cor_ext, cor_magn, field = get_results(source, NX, NY, NZ, x_coords, z_coords)
 
-    # Plot results    
-
+    # Plot results
     loc = np.zeros((x_coords.shape[0], 2))
     for i in range(len(extra) + 1):
         loc[i, 0] = round(100*grid[0][x_coords[i], z_coords[i]])/100
         loc[i, 1] = round(100*grid[2][x_coords[i], z_coords[i]])/100
-
+    
+    text=varying[0]
+    if len(varying) > 1:    
+        for w in varying[1:]:
+            text = text + ', ' + w
+    
+    # Do this if you do not need to review the files
+    autosave = True
+    if autosave:
+        filename='figures/influence_'
+        for w in varying:
+            filename = filename + w + '_'
     for key in cor_ext:
-        show_and_save(cor_ext[key], grid, loc, note=key)
-    show_and_save(cor_magn, grid, loc, note='|B|')
+        if autosave:
+            f = filename + 'on_' + key
+        else:
+            f=None    
+        if field is not None:
+            if autosave:
+                f = f + '_f'
+        show_and_save(cor_ext[key], grid, loc, field, text, key, f)
+    if autosave:
+        f = filename + 'on_B'
+    else:
+        f = None
+    show_and_save(cor_magn, grid, loc, field, text, '|B|', f)
 
 
 if __name__ == '__main__':
     main()
+

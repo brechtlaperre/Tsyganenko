@@ -3,7 +3,7 @@
 PYTHON=python3
 
 # Parameters
-COLUMN='PDYN'
+COLUMN='B0z' 'PDYN'
 MU=0
 SIGMA=3
 ENSEMBLE_SIZE=30
@@ -34,9 +34,9 @@ ensemble: model/TA15/TA15_input model/TA15/output
 	cd model/TA15; ./run.sh
 
 representer: model/TA15/output
-	$(PYTHON) DA/domain.py $< $(X1) $(Y1) --extra $(X2) $(Y2) --extra $(X3) $(Y3) --extra $(X4) $(Y4)
+	$(PYTHON) DA/domain.py $< $(COLUMN)  $(X1) $(Y1) --extra $(X2) $(Y2) --extra $(X3) $(Y3) --extra $(X4) $(Y4)
 
 clean:
 	rm DA/input/TA15_input
 	
-all: clean ensemble representer
+all:ensemble representer
