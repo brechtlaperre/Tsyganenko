@@ -30,6 +30,7 @@ def compute_domain(ux, uxx, uxy, x, y):
         var_y[i] = var_x[x[i], y[i]]
         cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], y[i]])
         dv_ = np.sqrt(np.abs(var_x*var_y[i]))
+        # print(np.nonzero(dv_ <= 0))
         div = np.where(dv_ > 0, 1/dv_, 0)
         cov[:, :, i] = np.multiply(cov[:, :, i], div)
     return cov
@@ -83,7 +84,7 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
         fig.colorbar(surf, ax=axi)
         axi.set_title('({}, {})'.format(x, y))
         if field is not None:
-            axi.streamplot(grid[0], grid[2], field[0], field[2], density=.9, linewidth=1, color='white')
+            axi.streamplot(grid[0], grid[2], field[0], field[2], density=.88888888, linewidth=1, color='white')
     #fig.suptitle('Domain of influence {}'.format(note))
     #plt.tight_layout()
     plt.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.26, hspace=0.25)
@@ -97,7 +98,7 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
             plt.savefig(a+'.png', dpi=800, format='png')
             plt.close()
     else:
-        plt.savefig(filename+'.png', dpi=800, format='png')
+        plt.savefig(filename+'.png', dpi=600, format='png')
         plt.close()
 
 
@@ -107,9 +108,11 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
 @click.argument('varying', type=str, nargs=-1)
 @click.argument('coords', type=(int, int))
 @click.option('--extra', type=(int, int), multiple=True)
-def main(source, varying, coords, extra):
+@click.option('--identifier', type=str, default='')
+def main(source, varying, coords, extra, identifier):
     NX, NY, NZ = 192, 1, 192 # Dim is hard-coded for now
     
+    autosave = True 
     # parse input
     x_coords = [coords[0]]
     z_coords = [coords[1]]
@@ -122,7 +125,7 @@ def main(source, varying, coords, extra):
     z_coords = np.array(z_coords)
     
     grid, cor_ext, cor_magn, field = get_results(source, NX, NY, NZ, x_coords, z_coords)
-
+    # field = None
     # Plot results
     loc = np.zeros((x_coords.shape[0], 2))
     for i in range(len(extra) + 1):
@@ -135,9 +138,8 @@ def main(source, varying, coords, extra):
             text = text + ', ' + w
     
     # Do this if you do not need to review the files
-    autosave = True
     if autosave:
-        filename='figures/influence_'
+        filename='figures/' + identifier + '_influence_'
         for w in varying:
             filename = filename + w + '_'
     for key in cor_ext:
@@ -151,6 +153,8 @@ def main(source, varying, coords, extra):
         show_and_save(cor_ext[key], grid, loc, field, text, key, f)
     if autosave:
         f = filename + 'on_B'
+        if field is not None:
+            f = f + '_f'
     else:
         f = None
     show_and_save(cor_magn, grid, loc, field, text, '|B|', f)
