@@ -4,11 +4,11 @@ PYTHON=python3
 
 # Parameters
 COLUMN='B0z'
-MU=3
+MU=10
 SIGMA=2
 ENSEMBLE_SIZE=30
 SIGN=True
-IMAGEID=pos_B
+IMAGEID=extr_pos_B
 
 X1=98
 Y1=126

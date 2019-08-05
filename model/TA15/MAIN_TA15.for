@@ -118,10 +118,10 @@ c
      *                     XGSW(i,k),0.D0,ZGSW(i,k),
      *                     BXGSW,BYGSW,BZGSW)
 C -- Routines to include internal B field:
-c            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
-c     *                   HXGSW,HYGSW,HZGSW)
-c            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
-c     *                   HXGSW,HYGSW,HZGSW)
+            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
+     *                   HXGSW,HYGSW,HZGSW)
+            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
+     *                   HXGSW,HYGSW,HZGSW)
 C --
           WRITE(ounit,*) XGSW(i,k),0.D0,ZGSW(i,k),
      *                   BXGSW+DBLE(HXGSW),BYGSW+DBLE(HYGSW),
