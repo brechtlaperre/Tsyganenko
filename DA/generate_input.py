@@ -45,7 +45,7 @@ def main(column, mu, sigma, amount, sign):
         assert c in columns, "Error, unknown variable {}. Known variables: {}".format(c, columns)
 
     base = pd.DataFrame(columns=columns, 
-                        data=[[3.0, 1, 8, 1.0]])
+                        data=[[2.0, 1, 8, 0]])
     base.index.name = 'ID'
 
     if sign:

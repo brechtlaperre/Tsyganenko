@@ -36,7 +36,7 @@ def compute_domain(ux, uxx, uxy, x, y):
     return cov
 
 
-def get_results(folder, nx, ny, nz, x, y):
+def get_results(folder, x, y):
     total = 0
     ext_ux = [None, None, None]
     ext_uxx = [None, None, None]
@@ -47,7 +47,7 @@ def get_results(folder, nx, ny, nz, x, y):
         for file_ in files:
             if 'OUT' in file_:
                 total += 1   
-                grid, ext_B, _, field, magn = read_and_parse(root+'/' + file_, nx, ny, nz)
+                grid, ext_B, _, field, magn = read_and_parse(root+'/' + file_)
                 for i, comp in enumerate(ext_B):
                     ext_ux[i], ext_uxx[i], ext_uxy[i] = accumulate_values(comp, ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
                 magn_ux, magn_uxx, magn_uxy = accumulate_values(magn[2], magn_ux, magn_uxx, magn_uxy, x, y)
@@ -110,7 +110,6 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
 @click.option('--extra', type=(int, int), multiple=True)
 @click.option('--identifier', type=str, default='')
 def main(source, varying, coords, extra, identifier):
-    NX, NY, NZ = 192, 1, 192 # Dim is hard-coded for now
     
     autosave = True 
     # parse input
@@ -124,7 +123,7 @@ def main(source, varying, coords, extra, identifier):
     x_coords = np.array(x_coords)
     z_coords = np.array(z_coords)
     
-    grid, cor_ext, cor_magn, field = get_results(source, NX, NY, NZ, x_coords, z_coords)
+    grid, cor_ext, cor_magn, field = get_results(source, x_coords, z_coords)
     # field = None
     # Plot results
     loc = np.zeros((x_coords.shape[0], 2))

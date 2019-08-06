@@ -21,7 +21,7 @@ C
       INTEGER, PARAMETER :: iunit=21
       INTEGER :: IOPT
       INTEGER :: i, k
-      INTEGER, PARAMETER :: DIM=192 
+      INTEGER, PARAMETER :: DIM=500
 
       REAL*8, DIMENSION(DIM,DIM) :: XGSW
       REAL*8, DIMENSION(DIM,DIM) :: ZGSW
@@ -34,10 +34,10 @@ C
       REAL   :: HYGSW = 0.D0
       REAL   :: HZGSW = 0.D0
 
-      REAL*8 :: Xbeg = -19.2D0
-      REAL*8 :: Zbeg = -19.2D0
+      REAL*8 :: Xbeg = -55.2D0
+      REAL*8 :: Zbeg = -25.1D0
       REAL*8 :: dx = 0.2D0
-      REAL*8 :: dz = 0.2D0
+      REAL*8 :: dz = 0.1D0
 
       REAL :: PDYN
       REAL :: B0y

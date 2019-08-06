@@ -36,7 +36,7 @@ def compute_background(x, y, z, planet='Earth'):
     return B0x, B0y, B0z
 
 
-def read_and_parse(source, nx, ny, nz, background=False):
+def read_and_parse(source, background=False):
     """Read and process output of Tsyganenko
 
     INPUT:
@@ -59,6 +59,9 @@ def read_and_parse(source, nx, ny, nz, background=False):
     R_sim=12742.0
     x, y, z, Btx, Bty, Btz = np.genfromtxt(source, unpack=True)
 
+    nx = np.where(x[1:] == x[0])[0][0] + 1
+    ny = np.where(y[1:] == y[0])[0][0] + 1
+    nz = np.where(z[1:] != z[0])[0][0] + 1
     # Reshape results back to the dimensions used in the original program
     # Create and scale the grid, reverse x and z axis
 

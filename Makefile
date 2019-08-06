@@ -4,9 +4,9 @@ PYTHON=python3
 
 # Parameters
 COLUMN='B0z'
-MU=10
+MU=-10
 SIGMA=2
-ENSEMBLE_SIZE=30
+ENSEMBLE_SIZE=1
 SIGN=True
 IMAGEID=extr_pos_B
 
@@ -33,6 +33,9 @@ model/TA15/output:
 	mkdir model/TA15/output
 
 ensemble: model/TA15/TA15_input model/TA15/output
+	cd model/TA15; ./run.sh
+
+runmodel:
 	cd model/TA15; ./run.sh
 
 representer: model/TA15/output
