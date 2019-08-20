@@ -1,13 +1,14 @@
 .PHONY: all clean ensemble representer
+.ONESHELL: compile runmodel
 
 PYTHON=python3
 
 # Parameters
-COLUMN='B0z'
-MU=-10
-SIGMA=2
-ENSEMBLE_SIZE=1
-SIGN=True
+COLUMN='VGSEX'
+MU=-400
+SIGMA=10
+ENSEMBLE_SIZE=30
+SIGN=False
 IMAGEID=extr_pos_B
 
 X1=98
@@ -32,11 +33,15 @@ model/TA15/TA15_input: DA/input/TA15_input
 model/TA15/output:
 	mkdir model/TA15/output
 
-ensemble: model/TA15/TA15_input model/TA15/output
-	cd model/TA15; ./run.sh
+compile:
+	cd model/TA15
+	gfortran Geopack-2008.for TA_2015_B.for MAIN_TA15.for -o TA15.e
 
+ensemble: model/TA15/TA15_input model/TA15/output compile runmodel
+	
 runmodel:
-	cd model/TA15; ./run.sh
+	cd model/TA15
+	./TA15.e
 
 representer: model/TA15/output
 	$(PYTHON) DA/domain.py $< $(COLUMN)  $(X1) $(Y1) --extra $(X2) $(Y2) --extra $(X3) $(Y3) --extra $(X4) $(Y4) --identifier $(IMAGEID)

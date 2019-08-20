@@ -55,10 +55,11 @@ def read_and_parse(source, background=False):
         6. tuple of magnitude of B (B_tot, B_dip, B_ext)
     """
     #Arbitrary values used for rescaling
-    di=83081.8
-    R_sim=12742.0
+    di=83081.8 
+    R_sim=12742.0   # Diameter of earth in km
     x, y, z, Btx, Bty, Btz = np.genfromtxt(source, unpack=True)
-
+    
+    x = x.astype(np.float64)
     nx = np.where(x[1:] == x[0])[0][0] + 1
     ny = np.where(y[1:] == y[0])[0][0] + 1
     nz = np.where(z[1:] != z[0])[0][0] + 1

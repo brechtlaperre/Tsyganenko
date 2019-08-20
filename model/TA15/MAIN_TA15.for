@@ -1,7 +1,6 @@
 C******************************************************************************
 C
       PROGRAM EXAMPLE2
-
       IMPLICIT NONE
       REAL ::           AA(10),SPS,CPS,BB(3),PSI,CC(18)
       COMMON /GEOPACK1/ AA,SPS,CPS,BB,PSI,CC
@@ -14,7 +13,6 @@ c
 C
 C  X,Y,Z Locations
 C
-
       REAL*8, DIMENSION(10) :: PARMOD
 
       INTEGER, PARAMETER :: ounit=20
@@ -43,6 +41,10 @@ C
       REAL :: B0y
       REAL :: B0z
       REAL :: XIND
+      REAL :: VGSEX
+      REAL :: VGSEY
+      REAL :: VGSEZ
+    
       INTEGER :: Status 
       INTEGER :: ID
       CHARACTER(len=10) :: filename
@@ -62,18 +64,24 @@ C   because here we explicitly specify the tilt angle (hence, the orientation of
 C   dipole in the GSW coordinates), so we arbitrarily set IHOUR=MIN=ISEC=0 and 
 C   VGSEX=-400.0, VGSEY=VGSEZ=0 (any other values would be equally OK):
 C
-      CALL RECALC_08 (1997,350,0,0,0,-400.0,0.0,0.0)
+C      CALL RECALC_08 (1997,350,0,0,0,-400.0,0.0,0.0)
 C
 C  Specify the dipole tilt angle PS, its sine SPS and cosine CPS, entering
 c    in the common block /GEOPACK1/:
 C
 
       OPEN (UNIT=iunit,FILE="TA15_input",ACTION="read")
-      read(iunit,*)
+
+C Skip first line with column names
+      read(iunit,*) 
 
       DO
-        read(iunit,*,IOSTAT=Status) ID, PDYN, B0y, B0z, XIND
+      read(iunit,*,IOSTAT=Status) ID,PDYN,B0y,B0z,XIND,VGSEX,VGSEY,VGSEZ
         
+        write(*, *) 'generating file ', ID, VGSEX
+
+        CALL RECALC_08 (1997,350,0,0,0,VGSEX,VGSEY,VGSEZ)
+
         PS    = 0.D0
         BXGSW = 0.D0
         BYGSW = 0.D0

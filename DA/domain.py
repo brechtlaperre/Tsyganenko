@@ -88,7 +88,7 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
     #fig.suptitle('Domain of influence {}'.format(note))
     #plt.tight_layout()
     plt.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.26, hspace=0.25)
-    plt.show(block=False)
+    #plt.show(block=False)
     
     if filename is None:
         a = input(' > Save image?: [no]')

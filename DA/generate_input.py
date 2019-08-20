@@ -39,13 +39,13 @@ def main(column, mu, sigma, amount, sign):
     Output:
         file named TA15_output, useable by model TA15.
     '''
-    columns = ['PDYN', 'B0y', 'B0z', 'XIND']
+    columns = ['PDYN', 'B0y', 'B0z', 'XIND', 'VGSEX', 'VGSEY', 'VGSEZ']
 
     for c in column:
         assert c in columns, "Error, unknown variable {}. Known variables: {}".format(c, columns)
 
     base = pd.DataFrame(columns=columns, 
-                        data=[[2.0, 1, 8, 0]])
+                        data=[[2.0, 1, 8, 0, -400.0, 0.0, 0.0]])
     base.index.name = 'ID'
 
     if sign:
