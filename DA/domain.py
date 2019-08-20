@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import click
+
 from preprocess import read_and_parse
 
 def accumulate_values(result, ux, uxx, uxy, x, y):
@@ -41,6 +42,8 @@ def get_results(folder, x, y):
     ext_ux = [None, None, None]
     ext_uxx = [None, None, None]
     ext_uxy = [None, None, None]
+    xloc = np.zeros(x.shape)
+    yloc = np.zeros(y.shape)
     magn_ux, magn_uxx, magn_uxy = None, None, None
     for root, _, files in os.walk(folder):
         print(root)
@@ -48,9 +51,14 @@ def get_results(folder, x, y):
             if 'OUT' in file_:
                 total += 1   
                 grid, ext_B, _, field, magn = read_and_parse(root+'/' + file_)
+                for i in range(len(x)):
+                    xloc[i] = int(grid[0].shape[1]*x[i])
+                    yloc[i] = int(grid[2].shape[0]*y[i])
+                xloc = xloc.astype(np.int)
+                yloc = yloc.astype(np.int)
                 for i, comp in enumerate(ext_B):
-                    ext_ux[i], ext_uxx[i], ext_uxy[i] = accumulate_values(comp, ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
-                magn_ux, magn_uxx, magn_uxy = accumulate_values(magn[2], magn_ux, magn_uxx, magn_uxy, x, y)
+                    ext_ux[i], ext_uxx[i], ext_uxy[i] = accumulate_values(comp, ext_ux[i], ext_uxx[i], ext_uxy[i], xloc, yloc)
+                magn_ux, magn_uxx, magn_uxy = accumulate_values(magn[2], magn_ux, magn_uxx, magn_uxy, xloc, yloc)
 
     # normalize
     for i in range(3):
@@ -61,8 +69,8 @@ def get_results(folder, x, y):
 
     cor_ext = {'Bx': None, 'By': None, 'Bz': None}
     for i, key in enumerate(cor_ext.keys()):
-        cor_ext[key] = compute_domain(ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
-    cor_magn = compute_domain(magn_ux, magn_uxx, magn_uxy, x, y)
+        cor_ext[key] = compute_domain(ext_ux[i], ext_uxx[i], ext_uxy[i], xloc, yloc)
+    cor_magn = compute_domain(magn_ux, magn_uxx, magn_uxy, xloc, yloc)
 
     return grid, cor_ext, cor_magn, field
 
@@ -106,8 +114,8 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
 @click.command()
 @click.argument('source', type=click.Path(exists=True))
 @click.argument('varying', type=str, nargs=-1)
-@click.argument('coords', type=(int, int))
-@click.option('--extra', type=(int, int), multiple=True)
+@click.argument('coords', type=(float, float))
+@click.option('--extra', type=(float, float), multiple=True)
 @click.option('--identifier', type=str, default='')
 def main(source, varying, coords, extra, identifier):
     
@@ -128,8 +136,11 @@ def main(source, varying, coords, extra, identifier):
     # Plot results
     loc = np.zeros((x_coords.shape[0], 2))
     for i in range(len(extra) + 1):
-        loc[i, 0] = round(100*grid[0][x_coords[i], z_coords[i]])/100
-        loc[i, 1] = round(100*grid[2][x_coords[i], z_coords[i]])/100
+        xl = int(grid[0].shape[1]*x_coords[i])
+        yl = int(grid[2].shape[0]*z_coords[i])
+        
+        loc[i, 0] = round(100*grid[0][xl, yl])/100
+        loc[i, 1] = round(100*grid[2][xl, yl])/100
     
     text=varying[0]
     if len(varying) > 1:    
