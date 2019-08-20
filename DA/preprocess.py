@@ -69,9 +69,9 @@ def read_and_parse(source, background=False):
     x   = x.reshape((nz,ny,nx))
     y   = y.reshape((nz,ny,nx))
     z   = z.reshape((nz,ny,nx))
-    x   = x[:-1,0,:-1] * (R_sim/di)
-    y   = y[:-1,0,:-1] * (R_sim/di)
-    z   = z[:-1,0,:-1] * (R_sim/di)
+    x   = x[:-1,0,:-1] #* (R_sim/di)
+    y   = y[:-1,0,:-1] #* (R_sim/di)
+    z   = z[:-1,0,:-1] #* (R_sim/di)
 
     # Read and scale the magnetic field
     Btx = Btx.reshape((nz,ny,nx))
