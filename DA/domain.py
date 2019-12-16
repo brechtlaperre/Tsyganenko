@@ -1,6 +1,7 @@
 from math import ceil
 import os
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import seaborn as sns
 import click
@@ -47,17 +48,17 @@ def get_results(folder, x, y):
     for root, _, files in os.walk(folder):
         print(root)
         for file_ in files:
-            if 'OUT' in file_:
+            if 'OUT0' in file_:
                 total += 1   
-                _, ext_B, _, field, magn = read_and_parse(root+'/' + file_, True)                
+                grid, ext_B, _, field, magn = read_and_parse(root+'/' + file_, True)                
                 for i, comp in enumerate(ext_B):
                     ext_ux[i], ext_uxx[i], ext_uxy[i] = accumulate_values(comp, ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
-                magn_ux, magn_uxx, magn_uxy = accumulate_values(magn[2], magn_ux, magn_uxx, magn_uxy, x, y)
+                magn_ux, magn_uxx, magn_uxy = accumulate_values(magn[0], magn_ux, magn_uxx, magn_uxy, x, y)
 
     # normalize
     for i in range(3):
-        ext_ux[i] = ext_ux[i]/total
-        ext_uxx[i] = ext_uxx[i]/total
+        ext_ux[i] = ext_ux[i]/total # Mean
+        ext_uxx[i] = ext_uxx[i]/total 
         ext_uxy[i] = ext_uxy[i]/total
     magn_ux, magn_uxx, magn_uxy = magn_ux/total, magn_uxx/total, magn_uxy/total
 
@@ -66,14 +67,13 @@ def get_results(folder, x, y):
         cor_ext[key] = compute_domain(ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
     cor_magn = compute_domain(magn_ux, magn_uxx, magn_uxy, x, y)
 
-    return cor_ext, cor_magn, field
+    return grid, cor_ext, cor_magn, ext_ux
 
 
 def show_and_save(cor, grid, loc, field, varying, note, filename=None):
-    if cor.shape[2] < 4:
-        fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
-    else:
-        fig, ax = plt.subplots(2, ceil(loc.shape[0]/2), figsize=(10, 5))
+#    if cor.shape[2] < 4:
+#        fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
+    fig, ax = plt.subplots(2, ceil(loc.shape[0]/2), figsize=(10, 5))
     axes = np.ndenumerate(ax)
     fig.suptitle('Varying {}, DoI of {}'.format(varying, note))
     for i in range(loc.shape[0]):
@@ -107,16 +107,22 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
         plt.close()
 
 
-def compute_coords(folder, x, y):
+def compute_matrix_coords(folder, x, y):
         xloc = np.zeros(x.shape)
         yloc = np.zeros(y.shape)
         grid, _, _, _, _ = read_and_parse(folder + '/OUT00.DAT')
         for i in range(len(x)):
-            yloc[i] = int(grid[0].shape[1]*y[i])
-            xloc[i] = int(grid[2].shape[0]*x[i])
+            yloc[i] = int(grid[0].shape[1]*x[i]) # Translate x-pos to columnnumber
+            xloc[i] = int(grid[0].shape[0]*y[i]) # Translate y-pos to rownumber
         xloc = xloc.astype(np.int)
         yloc = yloc.astype(np.int)
-        return grid, xloc, yloc
+
+        loc = np.zeros((len(xloc), 2))
+        for i in range(len(xloc)):
+            loc[i, 0] = round(100*grid[0][xloc[i], yloc[i]])/100
+            loc[i, 1] = round(100*grid[2][xloc[i], yloc[i]])/100
+
+        return xloc, yloc, loc
 
 @click.command()
 @click.argument('source', type=click.Path(exists=True))
@@ -140,19 +146,12 @@ def main(source, varying, coords, extra, identifier):
     x_coords = np.array(x_coords)
     z_coords = np.array(z_coords)
 
-    grid, x, y = compute_coords(source, x_coords, z_coords)
+    x, y, pos = compute_matrix_coords(source, x_coords, z_coords)
 
-    cor_ext, cor_magn, field = get_results(source, x, y)
-    # field = None
-    # Plot results
-    loc = np.zeros((x.shape[0], 2))
-
-    for i in range(len(x)):
-        loc[i, 0] = round(100*grid[0][x[i], y[i]])/100
-        loc[i, 1] = round(100*grid[2][x[i], y[i]])/100
-    print(loc)
+    grid, cor_ext, cor_magn, field = get_results(source, x, y)
+    
     text=varying[0]
-    if len(varying) > 1:    
+    if len(varying) > 1:
         for w in varying[1:]:
             text = text + ', ' + w
     
@@ -180,33 +179,41 @@ def main(source, varying, coords, extra, identifier):
     #    f = None
     #show_and_save(cor_magn, grid, loc, field, text, '|B|', f)
 
-    for ind, (x, y) in enumerate(loc):
+    for ind, (xs, ys) in enumerate(pos):
         if autosave:
             f = filename + 'coordinate_' + str(ind)
-        create_image(cor_ext, cor_magn, grid, field, x, y, ind, f)
+        create_image(cor_ext, cor_magn, grid, field, xs, ys, ind, f)
 
 
 def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
-    fig, axes = plt.subplots(2, 2, sharex=True, sharey=True, squeeze=True, figsize=(6,5))
+    fig, axes = plt.subplots(1, 2, sharey=True, squeeze=True)
+    labels = ['(a)', '(b)']
     k = list(cor_ext.keys())
+    k = k[1:]
     for i, axi in enumerate(axes.flatten()):
-        if i < 3:
-            surf = axi.imshow(cor_ext[k[i]][:, :, ind], vmin=-1, vmax=1, extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
+        if i < len(k):
+            surf = axi.imshow(cor_ext[k[i]][::-1, :, ind], vmin=-1, vmax=1, extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
             axi.set_title('DoI of {}'.format(k[i]))
-        else:
-            surf = axi.imshow(cor_magn[:, :, ind], vmin=-1, vmax=1, extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
-            axi.set_title('DoI of |B|')
+            axi.text(0.05, 1.1, labels[i], transform=axi.transAxes, fontsize=12, va='top', ha='right')
+            
+        #else:
+        #    surf = axi.imshow(cor_magn[::-1, :, ind], vmin=-1, vmax=1, extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
+        #    axi.set_title('DoI of |B|')
         axi.set_xlim(np.min(grid[0]), np.max(grid[0]))
         axi.set_ylim(np.min(grid[2]),np.max(grid[2]))
         axi.set_xlabel(r'x/$R_E$')
         axi.set_ylabel(r'z/$R_E$')
         axi.plot(x, y, 'c*')
         axi.plot(0, 0, 'go')
-        fig.colorbar(surf, ax=axi)
-        
+        divider = make_axes_locatable(axi)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+
+        plt.colorbar(surf, cax=cax)
         if field is not None:
             axi.streamplot(grid[0], grid[2], field[0], field[2], density=.7, linewidth=1, color='gray', arrowsize=.5)
-    plt.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.26, hspace=0.24)
+        
+    plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0.3, hspace=0)
+    #plt.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.26, hspace=0.24)
     if filename is None:
         a = input(' > Save image?: [no]')
         if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':
@@ -215,7 +222,7 @@ def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
             plt.savefig(a+'.png', dpi=800, format='png')
             plt.close()
     else:
-        plt.savefig(filename+'.png', dpi=800, format='png', transparent=True)
+        plt.savefig(filename+'.png', dpi=800, format='png', transparent=True, bbox_inches='tight', pad_inches=0)
         plt.close()
 
     

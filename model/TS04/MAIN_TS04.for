@@ -9,7 +9,7 @@ c be sure to include an EXTERNAL statement with the names of (i) a magnetospheri
 c external field model and (ii) Earth's internal field model.
 c
       EXTERNAL DIP_08
-      EXTERNAL TA_2015_B
+      EXTERNAL TS04
 C
 C  X,Y,Z Locations
 C
@@ -123,14 +123,14 @@ c
 
         DO k = 1, DIMZ
           DO i = 1, DIMX
-            CALL TA_2015_B (IOPT,PARMOD,PS,
+            CALL T04_s (IOPT,PARMOD,PS,
      *                     XGSW(i,k),0.D0,ZGSW(i,k),
      *                     BXGSW,BYGSW,BZGSW)
 C -- Routines to include internal B field:
-            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
-     *                   HXGSW,HYGSW,HZGSW)
-C            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
+C            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
 C     *                   HXGSW,HYGSW,HZGSW)
+            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
+     *                   HXGSW,HYGSW,HZGSW)
 C --
           WRITE(ounit,*) XGSW(i,k),0.D0,ZGSW(i,k),
      *                   BXGSW+DBLE(HXGSW),BYGSW+DBLE(HYGSW),

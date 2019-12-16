@@ -5,9 +5,12 @@ import click
 def gen_init_states(base, parameters, mu, sigma, num=100, sign=None):
 
     init = base.loc[np.repeat(base.index.values, num)].reset_index(drop=True)
-    for p in parameters:
-        s = sign
-        init[p] = np.random.normal(mu, sigma, size=init.shape[0])
+    for i, p in enumerate(parameters):
+        if sign is not None:
+            s = sign[i]
+        else:
+            s = ''
+        init[p] = np.random.normal(mu[i], sigma[i], size=init.shape[0])
         if p == 'PDYN':
             s = 'pos'
         if s == 'pos':
@@ -39,20 +42,41 @@ def main(column, mu, sigma, amount, sign):
     Output:
         file named TA15_output, useable by model TA15.
     '''
-    columns = ['PDYN', 'B0y', 'B0z', 'XIND', 'VGSEX', 'VGSEY', 'VGSEZ']
+    print(mu, sigma, amount)
+    allowed_columns = ['PDYN', 'B0y', 'B0z', 'XIND', 'VGSEX', 'VGSEY', 'VGSEZ']
 
     for c in column:
-        assert c in columns, "Error, unknown variable {}. Known variables: {}".format(c, columns)
+        assert c in allowed_columns, "Error, unknown variable {}. Known variables: {}".format(c, allowed_columns)
 
-    base = pd.DataFrame(columns=columns, 
+    mu = [mu]*len(column)
+    sigma = [sigma]*len(column)
+    if len(column) > 1:
+        deny = ['', 'yes', 'y', 'Y', 'YES', 'Yes', 'YEs', 'yes']
+        for i in range(1, len(column)):
+            ans = input('> Keep same mu and sigma for the parameter {}? (Current value mu: {}, sigma: {}) [yes]'.format(c, mu[i], sigma[i]))
+            if ans not in deny:
+                try:
+                    nmu = input('Please add the desired value of mu for {}: '.format(c))
+                    nmu = float(nmu)
+                    mu[i] = nmu
+                    nsg = input('Please add the desired value of sigma for {}: '.format(c))
+                    nsg = float(nsg)
+                    sigma[i] = nsg
+                except ValueError:
+                    print("Error, that is not a number.")
+
+    base = pd.DataFrame(columns=allowed_columns, 
                         data=[[2.0, 1, 8, 0, -400.0, 0.0, 0.0]])
     base.index.name = 'ID'
 
+
     if sign:
-        if mu < 0:
-            sign='neg'
-        else:
-            sign='pos'
+        sign = []
+        for m in mu:
+            if m < 0:
+                sign.append('neg')
+            else:
+                sign.append('pos')
     else:
         sign=None
 

@@ -58,11 +58,14 @@ def read_and_parse(source, background=False):
     di=83081.8 
     R_sim=12742.0   # Diameter of earth in km
     x, y, z, Btx, Bty, Btz = np.genfromtxt(source, unpack=True)
-    
+
     x = x.astype(np.float64)
+    y = y.astype(np.float64)
+    z = z.astype(np.float64)
+
     nx = np.where(x[1:] == x[0])[0][0] + 1
     ny = np.where(y[1:] == y[0])[0][0] + 1
-    nz = np.where(z[1:] != z[0])[0][0] + 1
+    nz = int(len(z) / nx)
     # Reshape results back to the dimensions used in the original program
     # Create and scale the grid, reverse x and z axis
 
@@ -81,6 +84,17 @@ def read_and_parse(source, background=False):
     Bty = Bty[:-1,0,:-1]
     Btz = Btz[:-1,0,:-1]
 
+
+    # fix larg dipole at points (0,0), (0+Delta x, 0), (0-Delta x, 0)
+
+    ccol = np.argwhere(x[0, :] == 0)
+    crow = np.argwhere(z[:, 0] == 0)
+    for r in [crow-1, crow, crow+1]:
+        Btx[r, ccol] = 0
+        Bty[r, ccol] = 0
+        Btz[r, ccol] = 0
+
+
     # Scale external B field
     #TODO This needs explanation of why this must happen
     L = 2.0e-6
@@ -94,18 +108,18 @@ def read_and_parse(source, background=False):
         B0x, B0y, B0z = np.zeros(np.shape(x)), np.zeros(np.shape(y)), np.zeros(np.shape(z))    
 
     
-    BDx, BDy, BDz = compute_dipolar(x, y, z)
+    # BDx, BDy, BDz = compute_dipolar(x, y, z)
 
     # Add external + internal (dipolar) B fields (+ IMF if not given in Tsyganenko)
-    Bx = Btx + BDx + B0x
-    By = Bty + BDy + B0y
-    Bz = Btz + BDz + B0z
+    Bx = Btx #+ BDx + B0x
+    By = Bty #+ BDy + B0y
+    Bz = Btz #+ BDz + B0z
 
 
     # Calculate B fields magnitude
     Btm = np.sqrt(Btx*Btx + Bty*Bty + Btz*Btz)
-    BDm = np.sqrt(BDx*BDx + BDy*BDy + BDz*BDz)
-    Bm  = np.sqrt(Bx*Bx   + By*By   + Bz*Bz)
+    BDm = None # np.sqrt(BDx*BDx + BDy*BDy + BDz*BDz)
+    Bm  = None # np.sqrt(Bx*Bx   + By*By   + Bz*Bz)
 
     print('Parsed {}'.format(source))
     return (x, y, z), (Btx, Bty, Btz), (B0x, B0y, B0z), (Bx, By, Bz), (Btm, BDm, Bm)
