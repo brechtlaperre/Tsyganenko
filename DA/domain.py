@@ -219,7 +219,7 @@ def plot_variance(variance, grid, field, filename):
 def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
     k = list(cor_ext.keys())
     # k = k[1:] # remove first element of the keys
-    fig, axes = plt.subplots(1, len(k), sharey=True)
+    fig, axes = plt.subplots(1, len(k), figsize=(10,6), sharey=True)
     labels = ['(a)', '(b)', '(c)']
     for i, axi in enumerate(axes.flatten()):
         if i < len(k):
