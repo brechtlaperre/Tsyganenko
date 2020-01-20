@@ -19,8 +19,8 @@ C
       INTEGER, PARAMETER :: iunit=21
       INTEGER :: IOPT
       INTEGER :: i, k
-      INTEGER, PARAMETER :: DIMX=600
-      INTEGER, PARAMETER :: DIMZ=350
+      INTEGER, PARAMETER :: DIMX=1200
+      INTEGER, PARAMETER :: DIMZ=1200
 
       REAL*8, DIMENSION(DIMX,DIMZ) :: XGSW
       REAL*8, DIMENSION(DIMX,DIMZ) :: ZGSW
@@ -34,11 +34,12 @@ C
       REAL   :: HZGSW = 0.D0
 
       REAL*8 :: Xbeg = -40.D0
-      REAL*8 :: Zbeg = -35.D0
-      REAL*8 :: dx = 0.1D0
-      REAL*8 :: dz = 0.2D0
+      REAL*8 :: Zbeg = -30.D0
+      REAL*8 :: dx = 0.005D0
+      REAL*8 :: dz = 0.005D0
 
       REAL :: PDYN
+      REAL :: TI
       REAL :: B0y
       REAL :: B0z
       REAL :: XIND
@@ -46,7 +47,7 @@ C
       REAL :: VGSEY
       REAL :: VGSEZ
     
-      INTEGER :: Status 
+      INTEGER :: status 
       INTEGER :: ID
       CHARACTER(len=10) :: filename
 C XIND: solar-wind-magnetosphere driving index, 
@@ -65,7 +66,7 @@ C   because here we explicitly specify the tilt angle (hence, the orientation of
 C   dipole in the GSW coordinates), so we arbitrarily set IHOUR=MIN=ISEC=0 and 
 C   VGSEX=-400.0, VGSEY=VGSEZ=0 (any other values would be equally OK):
 C
-      CALL RECALC_08 (1997,350,0,0,0,-400.0,0.0,0.0)
+C      CALL RECALC_08 (2004,129,9,0,0,-400.0,0.0,0.0)
 C
 C  Specify the dipole tilt angle PS, its sine SPS and cosine CPS, entering
 c    in the common block /GEOPACK1/:
@@ -77,18 +78,19 @@ C Skip first line with column names
       read(iunit,*) 
 
       DO
-      read(iunit,*,IOSTAT=Status) ID,PDYN,B0y,B0z,XIND,VGSEX,VGSEY,VGSEZ
+      read(iunit,*,IOSTAT=status) ID,VGSEX,VGSEY,VGSEZ,
+     *  PDYN,B0y,B0z,XIND,TI
         
         write(*, *) 'generating file', ID
 
-C       CALL RECALC_08 (1997,350,0,0,0,VGSEX,VGSEY,VGSEZ)
+       CALL RECALC_08 (2004,129,9,0,0,VGSEX,VGSEY,VGSEZ)
 
-        PS    = 0.D0
+        PS    = TI
         BXGSW = 0.D0
         BYGSW = 0.D0
         BZGSW = 0.D0    
 
-        IF (Status < 0) THEN
+        IF (status < 0) THEN
           ! In case end of file is reached
           EXIT
         END IF
@@ -111,7 +113,7 @@ C                 WHOSE VALUE DOES NOT MATTER)
         PARMOD(3) = B0z
         PARMOD(4) = XIND
         PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
-        PS = 0.D0
+        PS = TI
 
         IOPT=0
 C           (IN THIS EXAMPLE IOPT IS JUST A DUMMY PARAMETER,

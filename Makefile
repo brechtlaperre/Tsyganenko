@@ -10,21 +10,21 @@ MU=5 #7
 SIGMA=2
 ENSEMBLE_SIZE=30
 SIGN=True
-IMAGEID='Bz_PDyn_pos_standard'
+IMAGEID='2004_04_09'
 
 
-# Coords if looked from x-y plane with range x \in [0, 1], y \in [0,1]
-X1=.95 # horizontal position
-Y1=.8 # vertical position
+# Coords if looked from x-y plane with range x \in [0, 1], z \in [0,1]
+X1=0.5 #.95 # horizontal position
+Z1=0.583 #.8 # vertical position
 
-X2=.95
-Y2=.45
+X2=.917
+Z2=.999
 
-X3=.9
-Y3=.09 
+X3=.333
+Z3=.417
 
-X4=.44
-Y4=.5
+X4=.5
+Z4=.833
 
 DA/input/TA15_input:
 	$(PYTHON) DA/generate_input.py --sign $(SIGN) $(COLUMN) -- $(MU) $(SIGMA) $(ENSEMBLE_SIZE) 
@@ -36,16 +36,18 @@ model/TA15/TA15_input: DA/input/TA15_input
 output_folder:
 	mkdir model/$(MODEL)/output
 
-ensemble: model/TA15/TA15_input output_folder compile runmodel
-	
+new_ensemble: model/TA15/TA15_input output_folder compile run
+
+ensemble: output_folder compile run
+
 compile:
-	$(MAKE) -C 'model/$(MODEL)'
+	(cd 'model/$(MODEL)'; make compile)
 
 run:
-	$(MAKE) -C 'model/$(MODEL)'
+	(cd 'model/$(MODEL)'; make run)
 
 representer: model/TA15/output
-	$(PYTHON) DA/domain.py $< $(COLUMN)  $(X1) $(Y1) --extra $(X2) $(Y2) --extra $(X3) $(Y3) --extra $(X4) $(Y4) --identifier $(IMAGEID)
+	$(PYTHON) DA/domain.py $< $(COLUMN)  $(X1) $(Z1) --extra $(X2) $(Z2) --extra $(X3) $(Z3) --extra $(X4) $(Z4) --identifier $(IMAGEID)
 
 clean:
 	rm DA/input/TA15_input

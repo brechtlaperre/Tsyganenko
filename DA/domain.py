@@ -32,8 +32,8 @@ def compute_domain(ux, uxx, uxy, x, y):
     for i, _ in enumerate(x):
         var_y[i] = var_x[x[i], y[i]]
         cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], y[i]])
-        dv_ = np.sqrt(np.abs(var_x*var_y[i]))
-        # print(np.nonzero(dv_ <= 0))
+        dv_ = np.sqrt(var_x*var_y[i])
+        
         div = np.where(dv_ > 0, 1/dv_, 0)
         cov[:, :, i] = np.multiply(cov[:, :, i], div)
     return cov
@@ -63,11 +63,13 @@ def get_results(folder, x, y):
     magn_ux, magn_uxx, magn_uxy = magn_ux/total, magn_uxx/total, magn_uxy/total
 
     cor_ext = {'Bx': None, 'By': None, 'Bz': None}
+    var_ext = {'Bx': None, 'By': None, 'Bz': None}
     for i, key in enumerate(cor_ext.keys()):
+        var_ext[key] = ext_uxx[i] - np.multiply(ext_ux[i], ext_ux[i])
         cor_ext[key] = compute_domain(ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
     cor_magn = compute_domain(magn_ux, magn_uxx, magn_uxy, x, y)
 
-    return grid, cor_ext, cor_magn, ext_ux
+    return grid, cor_ext, cor_magn, ext_ux, var_ext
 
 
 def show_and_save(cor, grid, loc, field, varying, note, filename=None):
@@ -79,7 +81,7 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
     for i in range(loc.shape[0]):
         _, axi = axes.next()
         x, y = loc[i, :]
-        surf = axi.contourf(grid[0], grid[2], cor[:, :, i], cmap=plt.get_cmap('bwr'), vmin=-1)
+        surf = axi.contourf(grid[0], grid[2], cor[:, :, i], cmap=plt.get_cmap('seismic'), vmin=-1)
         axi.set_xlim(np.min(grid[0]), np.max(grid[0]))
         axi.set_ylim(np.min(grid[2]),np.max(grid[2]))
         axi.set_xlabel(r'x/$R_E$')
@@ -108,21 +110,21 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
 
 
 def compute_matrix_coords(folder, x, y):
-        xloc = np.zeros(x.shape)
-        yloc = np.zeros(y.shape)
-        grid, _, _, _, _ = read_and_parse(folder + '/OUT00.DAT')
-        for i in range(len(x)):
-            yloc[i] = int(grid[0].shape[1]*x[i]) # Translate x-pos to columnnumber
-            xloc[i] = int(grid[0].shape[0]*y[i]) # Translate y-pos to rownumber
-        xloc = xloc.astype(np.int)
-        yloc = yloc.astype(np.int)
+    xloc = np.zeros(x.shape)
+    yloc = np.zeros(y.shape)
+    grid, _, _, _, _ = read_and_parse(folder + '/OUT00.DAT')
+    for i in range(len(x)):
+        yloc[i] = int(grid[0].shape[1]*x[i]) # Translate x-pos to columnnumber
+        xloc[i] = int(grid[0].shape[0]*y[i]) # Translate y-pos to rownumber
+    xloc = xloc.astype(np.int)
+    yloc = yloc.astype(np.int)
 
-        loc = np.zeros((len(xloc), 2))
-        for i in range(len(xloc)):
-            loc[i, 0] = round(100*grid[0][xloc[i], yloc[i]])/100
-            loc[i, 1] = round(100*grid[2][xloc[i], yloc[i]])/100
+    loc = np.zeros((len(xloc), 2))
+    for i in range(len(xloc)):
+        loc[i, 0] = round(100*grid[0][xloc[i], yloc[i]])/100
+        loc[i, 1] = round(100*grid[2][xloc[i], yloc[i]])/100
 
-        return xloc, yloc, loc
+    return xloc, yloc, loc
 
 @click.command()
 @click.argument('source', type=click.Path(exists=True))
@@ -133,7 +135,7 @@ def compute_matrix_coords(folder, x, y):
 def main(source, varying, coords, extra, identifier):
     sns.set()
     sns.set_style('white')
-    folder = 'report_figures_august/' # Location where figures are stored
+    folder = 'report_januari/' # Location where figures are stored
     autosave = True 
 
     x_coords = [coords[0]]
@@ -148,7 +150,7 @@ def main(source, varying, coords, extra, identifier):
 
     x, y, pos = compute_matrix_coords(source, x_coords, z_coords)
 
-    grid, cor_ext, cor_magn, field = get_results(source, x, y)
+    grid, cor_ext, cor_magn, field, variance = get_results(source, x, y)
     
     text=varying[0]
     if len(varying) > 1:
@@ -162,40 +164,69 @@ def main(source, varying, coords, extra, identifier):
             filename = filename + w + '_'
 
     # This plots all DoI of same parameter for different coordinates
-    #for key in cor_ext:
-    #    if autosave:
-    #        f = filename + 'on_' + key
-    #    else:
-    #        f=None    
-    #    if field is not None:
-    #        if autosave:
-    #            f = f + '_f'
-    #    show_and_save(cor_ext[key], grid, loc, field, text, key, f)
-    #if autosave:
-    #    f = filename + 'on_B'
-    #    if field is not None:
-    #        f = f + '_f'
-    #else:
-    #    f = None
-    #show_and_save(cor_magn, grid, loc, field, text, '|B|', f)
+    """ for key in cor_ext:
+        if autosave:
+            f = filename + 'on_' + key
+        else:
+            f=None    
+        if field is not None:
+            if autosave:
+                f = f + '_f'
+        show_and_save(cor_ext[key], grid, loc, field, text, key, f)
+    if autosave:
+        f = filename + 'on_B'
+        if field is not None:
+            f = f + '_f'
+    else:
+        f = None
+    show_and_save(cor_magn, grid, loc, field, text, '|B|', f)
+    """
+
+    if autosave:
+        f = filename + 'variance'
+    plot_variance(variance, grid, field, f)    
 
     for ind, (xs, ys) in enumerate(pos):
         if autosave:
             f = filename + 'coordinate_' + str(ind)
-        create_image(cor_ext, cor_magn, grid, field, xs, ys, ind, f)
+        create_image(cor_ext, cor_magn, grid, field, xs, ys, ind, f) 
 
+def plot_variance(variance, grid, field, filename):
+    k = list(variance.keys())
+    fig, axes = plt.subplots(1, len(k), squeeze=True)
+    labels = ['(a)', '(b)', '(c)']
+    for i, axi in enumerate(axes.flatten()):
+        surf = axi.imshow(variance[k[i]], extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
+        axi.set_title('DoI of {}'.format(k[i]))
+        axi.text(0.05, 1.1, labels[i], transform=axi.transAxes, fontsize=12, va='top', ha='right')
+        divider = make_axes_locatable(axi)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(surf, cax=cax)
+        if field is not None:
+            axi.streamplot(grid[0], grid[2], field[0], field[2], density=.7, linewidth=1, color='gray', arrowsize=.5)
+    plt.tight_layout()
+    if filename is None:
+        a = input(' > Save image?: [no]')
+        if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':
+            plt.close()            
+        else:
+            plt.savefig(a+'.png', dpi=800, format='png')
+            plt.close()
+    else:
+        plt.savefig(filename+'.png', dpi=800, format='png', transparent=False, bbox_inches='tight', pad_inches=0)
+        plt.close()
 
 def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
-    fig, axes = plt.subplots(1, 2, sharey=True, squeeze=True)
-    labels = ['(a)', '(b)']
     k = list(cor_ext.keys())
-    k = k[1:]
+    # k = k[1:] # remove first element of the keys
+    fig, axes = plt.subplots(1, len(k), sharey=True)
+    labels = ['(a)', '(b)', '(c)']
     for i, axi in enumerate(axes.flatten()):
         if i < len(k):
-            surf = axi.imshow(cor_ext[k[i]][::-1, :, ind], vmin=-1, vmax=1, extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
+            surf = axi.imshow(cor_ext[k[i]][::-1, :, ind], cmap=plt.get_cmap('coolwarm'), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]), )
             axi.set_title('DoI of {}'.format(k[i]))
             axi.text(0.05, 1.1, labels[i], transform=axi.transAxes, fontsize=12, va='top', ha='right')
-            
+            axi.set_xticks(np.arange(-40, 21, 10.0))
         #else:
         #    surf = axi.imshow(cor_magn[::-1, :, ind], vmin=-1, vmax=1, extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
         #    axi.set_title('DoI of |B|')
@@ -211,18 +242,18 @@ def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
         plt.colorbar(surf, cax=cax)
         if field is not None:
             axi.streamplot(grid[0], grid[2], field[0], field[2], density=.7, linewidth=1, color='gray', arrowsize=.5)
-        
-    plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0.3, hspace=0)
+    plt.tight_layout()
+    #plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0.3, hspace=0)
     #plt.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.26, hspace=0.24)
     if filename is None:
         a = input(' > Save image?: [no]')
         if a == '' or a == 'No' or a == 'NO' or a == 'N' or a == 'n' or a == 'no':
-            plt.close()            
+            plt.close()
         else:
             plt.savefig(a+'.png', dpi=800, format='png')
             plt.close()
     else:
-        plt.savefig(filename+'.png', dpi=800, format='png', transparent=True, bbox_inches='tight', pad_inches=0)
+        plt.savefig(filename+'.png', dpi=800, format='png', transparent=False, bbox_inches='tight', pad_inches=0)
         plt.close()
 
     
