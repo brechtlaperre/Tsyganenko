@@ -48,7 +48,7 @@ def get_results(folder, x, y):
     for root, _, files in os.walk(folder):
         print(root)
         for file_ in files:
-            if 'OUT0' in file_:
+            if 'OUT' in file_:
                 total += 1   
                 grid, ext_B, _, field, magn = read_and_parse(root+'/' + file_, True)                
                 for i, comp in enumerate(ext_B):
