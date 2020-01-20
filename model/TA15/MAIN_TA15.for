@@ -35,8 +35,8 @@ C
 
       REAL*8 :: Xbeg = -40.D0
       REAL*8 :: Zbeg = -30.D0
-      REAL*8 :: dx = 0.005D0
-      REAL*8 :: dz = 0.005D0
+      REAL*8 :: dx = 0.05D0
+      REAL*8 :: dz = 0.05D0
 
       REAL :: PDYN
       REAL :: TI
