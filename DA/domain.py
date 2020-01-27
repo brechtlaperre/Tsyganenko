@@ -132,10 +132,10 @@ def compute_matrix_coords(folder, x, y):
 @click.argument('coords', type=(float, float))
 @click.option('--extra', type=(float, float), multiple=True)
 @click.option('--identifier', type=str, default='')
-def main(source, varying, coords, extra, identifier):
+@click.option('--folder', type=str, default='figures/')
+def main(source, varying, coords, extra, identifier, folder):
     sns.set()
     sns.set_style('white')
-    folder = 'report_januari/' # Location where figures are stored
     autosave = True 
 
     x_coords = [coords[0]]
@@ -193,7 +193,7 @@ def main(source, varying, coords, extra, identifier):
 
 def plot_variance(variance, grid, field, filename):
     k = list(variance.keys())
-    fig, axes = plt.subplots(1, len(k), squeeze=True)
+    fig, axes = plt.subplots(1, len(k), figsize=(10,6), squeeze=True)
     labels = ['(a)', '(b)', '(c)']
     for i, axi in enumerate(axes.flatten()):
         surf = axi.imshow(variance[k[i]], extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
@@ -223,7 +223,7 @@ def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
     labels = ['(a)', '(b)', '(c)']
     for i, axi in enumerate(axes.flatten()):
         if i < len(k):
-            surf = axi.imshow(cor_ext[k[i]][::-1, :, ind], cmap=plt.get_cmap('coolwarm'), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]), )
+            surf = axi.imshow(cor_ext[k[i]][::-1, :, ind], cmap=plt.get_cmap('coolwarm'), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]), vmin=-1, vmax=1)
             axi.set_title('DoI of {}'.format(k[i]))
             axi.text(0.05, 1.1, labels[i], transform=axi.transAxes, fontsize=12, va='top', ha='right')
             axi.set_xticks(np.arange(-40, 21, 10.0))

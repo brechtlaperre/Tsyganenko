@@ -4,14 +4,14 @@
 PYTHON=python3
 
 # Parameters
-MODEL='TA15'
-COLUMN='B0z' 'PDYN'
+MODEL='T89'
+COLUMN='SWX'
 MU=5 #7
 SIGMA=2
 ENSEMBLE_SIZE=30
 SIGN=True
 IMAGEID='2004_04_09'
-
+FOLDER='report_januari/$(MODEL)/'
 
 # Coords if looked from x-y plane with range x \in [0, 1], z \in [0,1]
 X1=0.5 #.95 # horizontal position
@@ -46,8 +46,8 @@ compile:
 run:
 	(cd 'model/$(MODEL)'; make run)
 
-representer: model/TA15/output
-	$(PYTHON) DA/domain.py $< $(COLUMN)  $(X1) $(Z1) --extra $(X2) $(Z2) --extra $(X3) $(Z3) --extra $(X4) $(Z4) --identifier $(IMAGEID)
+representer: 
+	$(PYTHON) DA/domain.py model/$(MODEL)/output $(COLUMN)  $(X1) $(Z1) --extra $(X2) $(Z2) --extra $(X3) $(Z3) --extra $(X4) $(Z4) --identifier $(IMAGEID) --folder $(FOLDER)
 
 clean:
 	rm DA/input/TA15_input

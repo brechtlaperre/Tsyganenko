@@ -9,6 +9,7 @@ c be sure to include an EXTERNAL statement with the names of (i) a magnetospheri
 c external field model and (ii) Earth's internal field model.
 c
       EXTERNAL DIP_08
+      EXTERNAL IGRF_GSW_08
       EXTERNAL TA_2015_B
 C
 C  X,Y,Z Locations
@@ -17,10 +18,9 @@ C
 
       INTEGER, PARAMETER :: ounit=20
       INTEGER, PARAMETER :: iunit=21
-      INTEGER :: IOPT
       INTEGER :: i, k
-      INTEGER, PARAMETER :: DIMX=1200
-      INTEGER, PARAMETER :: DIMZ=1200
+      INTEGER, PARAMETER :: DIMX=600
+      INTEGER, PARAMETER :: DIMZ=600
 
       REAL*8, DIMENSION(DIMX,DIMZ) :: XGSW
       REAL*8, DIMENSION(DIMX,DIMZ) :: ZGSW
@@ -32,12 +32,16 @@ C
       REAL   :: HXGSW = 0.D0
       REAL   :: HYGSW = 0.D0
       REAL   :: HZGSW = 0.D0
+      REAL   :: IXGSW = 0.D0
+      REAL   :: IYGSW = 0.D0
+      REAL   :: IZGSW = 0.D0
 
       REAL*8 :: Xbeg = -40.D0
       REAL*8 :: Zbeg = -30.D0
-      REAL*8 :: dx = 0.05D0
-      REAL*8 :: dz = 0.05D0
+      REAL*8 :: dx = 0.1D0
+      REAL*8 :: dz = 0.1D0
 
+      INTEGER :: IOPT
       REAL :: PDYN
       REAL :: TI
       REAL :: B0y
@@ -50,6 +54,11 @@ C
       INTEGER :: status 
       INTEGER :: ID
       CHARACTER(len=10) :: filename
+      CHARACTER(len=10) :: inputfile
+
+      print *, '  enter filename of input'
+      read*, inputfile
+
 C XIND: solar-wind-magnetosphere driving index, 
 C Typical values of XIND: between 0 (quiet) and 2 (strongly disturbed)      
       DO k = 1, DIMZ
@@ -72,23 +81,23 @@ C  Specify the dipole tilt angle PS, its sine SPS and cosine CPS, entering
 c    in the common block /GEOPACK1/:
 C
 
-      OPEN (UNIT=iunit,FILE="TA15_input",ACTION="read")
+      OPEN (UNIT=iunit,FILE=inputfile,ACTION="read")
 
 C Skip first line with column names
       read(iunit,*) 
 
       DO
       read(iunit,*,IOSTAT=status) ID,VGSEX,VGSEY,VGSEZ,
-     *  PDYN,B0y,B0z,XIND,TI
+     *  PDYN,B0y,B0z,XIND,TI,IOPT
         
         write(*, *) 'generating file', ID
 
        CALL RECALC_08 (2004,129,9,0,0,VGSEX,VGSEY,VGSEZ)
 
-        PS    = TI
+        PS    = 0.D0
         BXGSW = 0.D0
         BYGSW = 0.D0
-        BZGSW = 0.D0    
+        BZGSW = 0.D0
 
         IF (status < 0) THEN
           ! In case end of file is reached
@@ -101,24 +110,16 @@ C Specify name of output file
           write (filename, "(A3,I2,A4)") "OUT",ID,".DAT"
         ENDIF
 
-        PSI=0.
+        PSI=TI
         SPS=SIN(PSI)
         CPS=COS(PSI)
 
-        IOPT=0
-C           (IN THIS EXAMPLE IOPT IS JUST A DUMMY PARAMETER,
-C                 WHOSE VALUE DOES NOT MATTER)
         PARMOD(1) = PDYN
         PARMOD(2) = B0y
         PARMOD(3) = B0z
         PARMOD(4) = XIND
         PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
         PS = TI
-
-        IOPT=0
-C           (IN THIS EXAMPLE IOPT IS JUST A DUMMY PARAMETER,
-C                 WHOSE VALUE DOES NOT MATTER)
-c
 
         OPEN (UNIT=ounit,FILE="output/"//filename,ACTION="write",
      *        STATUS="replace")
@@ -129,14 +130,16 @@ c
      *                     XGSW(i,k),0.D0,ZGSW(i,k),
      *                     BXGSW,BYGSW,BZGSW)
 C -- Routines to include internal B field:
-            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
-     *                   HXGSW,HYGSW,HZGSW)
-C            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
+C            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
 C     *                   HXGSW,HYGSW,HZGSW)
-C --
-          WRITE(ounit,*) XGSW(i,k),0.D0,ZGSW(i,k),
-     *                   BXGSW+DBLE(HXGSW),BYGSW+DBLE(HYGSW),
-     *                   BZGSW+DBLE(HZGSW)
+C            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.D0,
+C     *                   REAL(ZGSW(i,k)),IXGSW,IYGSW,IZGSW)
+C -- Save output to file
+                WRITE(ounit,*) XGSW(i,k),0.D0,ZGSW(i,k),
+     *                   BXGSW, BYGSW, BZGSW
+C    *                    BXGSW+DBLE(HXGSW)+DBLE(IXGSW), 
+C     *                   BYGSW+DBLE(HYGSW)+DBLE(IYGSW),
+C     *                   BZGSW+DBLE(HZGSW)+DBLE(IZGSW)
         ENDDO
       ENDDO
 
