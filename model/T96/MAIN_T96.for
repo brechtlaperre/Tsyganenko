@@ -1,160 +1,151 @@
-C******************************************************************************
+C**************************************************
 C
-      PROGRAM T96FROMFILE
-
-C  Unlike in the EXAMPLE1, here we "manually" specify the tilt angle and its sine/cosine.
-c  To forward them to the coordinate transformation subroutines, we need to explicitly
-c  include the common block /GEOPACK1/:
-
-C
+      PROGRAM T96_RUNNER
+C      IMPLICIT NONE
       COMMON /GEOPACK1/ AA(10),SPS,CPS,BB(3),PSI,CC(18)
-C 
-c be sure to include an EXTERNAL statement with the names of (i) a magnetospheric
-c external field model and (ii) Earth's internal field model.
-c
+C
+
       EXTERNAL T96_01, DIP_08
+
+C Define IO parameters
+      INTEGER, PARAMETER :: iunit = 21
+      INTEGER, PARAMETER :: ounit = 20
+      INTEGER :: i, j, k
 C
-C  X,Y,Z Locations
+C DEFINE GRID
+      INTEGER, PARAMETER :: DIMX = 600
+      INTEGER, PARAMETER :: DIMY = 1
+      INTEGER, PARAMETER :: DIMZ = 600
 C
-
-      DIMENSION PARMOD(10)
-
-      INTEGER, PARAMETER :: iunit = 20
-      INTEGER, PARAMETER :: ounit = 21
-      INTEGER, PARAMETER :: NX    = 319
-      INTEGER, PARAMETER :: NY    = 2
-      INTEGER, PARAMETER :: NZ    = 209
-
-C  Parameters T96_01
-C  Old param
-C     REAL, PARAMETER :: PDYN = 1.15
-C     REAL, PARAMETER :: Dst  = -16.0 
-C     REAL, PARAMETER :: B0y  = 0.0
-C     REAL, PARAMETER :: B0z  = 3.8
-c     REAL, PARAMETER :: B0z  = 0.0
-
-      REAL :: BXGSW = 0.0
-      REAL :: BYGSW = 0.0
-      REAL :: BZGSW = 0.0
-      REAL :: HXGSW = 0.0
-      REAL :: HYGSW = 0.0
-      REAL :: HZGSW = 0.0
-
-      REAL :: XGSW
-      REAL :: YGSW
-      REAL :: ZGSW
-      REAL :: X, Y, Z
-      REAL :: D2
-
-      REAL, PARAMETER :: RE2 = 1.0
-      REAL, PARAMETER :: LX = 82.9383622034
-      REAL, PARAMETER :: LY = 0.0
-      REAL, PARAMETER :: LZ = 54.24899163
-      REAL, PARAMETER :: Xbeg =-55.338362203412586
-      REAL, PARAMETER :: Ybeg = 0.0
-      REAL, PARAMETER :: Zbeg =-27.124495815
-
-      REAL :: dx = LX/(NX-1)
-      REAL :: dy = 0.0
-c      REAL :: dy = LY/(NY-1)
-      REAL :: dz = LZ/(NZ-1)
-
+      REAL*8, DIMENSION(DIMX) :: XGSW
+      REAL*8, DIMENSION(DIMY) :: YGSW
+      REAL*8, DIMENSION(DIMZ) :: ZGSW
+C
+C Standard start: Xbeg = -40.D0, Zbeg = -30.D0
+      REAL*8 :: Xbeg = -40.D0
+      REAL*8 :: Ybeg = 0.D0
+      REAL*8 :: Zbeg = -30.D0
+      REAL*8 :: dx = 0.1D0
+      REAL*8 :: dy = 0.1D0
+      REAL*8 :: dz = 0.1D0
+C
+C Define parameters
+C      
+      REAL, DIMENSION(10) :: PARMOD
+      REAL*8 :: PS    = 0.D0
+      REAL :: BXGSW = 0.D0
+      REAL :: BYGSW = 0.D0
+      REAL :: BZGSW = 0.D0
+      REAL :: DXGSW = 0.D0
+      REAL :: DYGSW = 0.D0
+      REAL :: DZGSW = 0.D0
+      REAL :: IXGSW = 0.D0
+      REAL :: IYGSW = 0.D0
+      REAL :: IZGSW = 0.D0
+C
+C Define inputparameters
+C
+      INTEGER :: IOPT = 0
       REAL :: PDYN
-      REAL :: Dst
+      REAL :: TI
       REAL :: B0y
       REAL :: B0z
-
+      REAL :: DST
+      REAL :: XIND
+      REAL :: VGSEX
+      REAL :: VGSEY
+      REAL :: VGSEZ
+C
+      INTEGER :: status 
       INTEGER :: ID
       CHARACTER(len=10) :: filename
-      INTEGER :: Status
+      CHARACTER(len=10) :: inputfile
+      CHARACTER(len=6) :: outfolder
 
+      print *, '  enter filename of input'
+      read*, inputfile
 C
-C   First, call RECALC_08, to define the main field coefficients and, hence, the magnetic
-C      moment of the geodipole for IYEAR=1997 and IDAY=350.
-C   The universal time and solar wind direction does not matter in this example, 
-C   because here we explicitly specify the tilt angle (hence, the orientation of 
-C   dipole in the GSW coordinates), so we arbitrarily set IHOUR=MIN=ISEC=0 and 
-C   VGSEX=-400.0, VGSEY=VGSEZ=0 (any other values would be equally OK):
+      IF (inputfile == 'reference') THEN
+            outfolder = 'refout'
+      ELSE
+            outfolder = 'output'
+      ENDIF
 C
-      CALL RECALC_08 (1997,350,0,0,0,-302.893,0.0,0.0)
-c
-c   Enter input parameters for T96_01:
-c
+      DO k = 1, DIMZ
+        DO j = 1, DIMY
+          DO i = 1, DIMX  
+            XGSW(i) = Xbeg + (i-1)*dx
+            YGSW(j) = Ybeg + (j-1)*dy
+            ZGSW(k) = Zbeg + (k-1)*dz
+          ENDDO
+        ENDDO
+      ENDDO
+C
+      OPEN (UNIT=iunit,FILE=inputfile,ACTION="read")
+      READ(iunit,*)
+C Skip first line with column names
+      DO
+        read(iunit,*,IOSTAT=status) ID,VGSEX,VGSEY,VGSEZ,
+     *  PDYN,DST,B0y,B0z,XIND,TI,IOPT
 
-      OPEN (UNIT=iunit,FILE="T96_input",ACTION="read")
-      read(iunit,*) ! skip header of the file
-
-      DO 
-        read(iunit,*,IOSTAT=Status) ID, PDYN, DST, B0y, B0z
-
-        IF (Status < 0) THEN
-! In case end of file is reached
+      IF (status < 0) THEN
+          ! In case end of file is reached
           EXIT
         END IF
 
+        write(*, *) 'Generating output file ', ID
+
+        CALL RECALC_08 (2004,128,0,0,0,VGSEX,VGSEY,VGSEZ)
+C reset parameters
+        BXGSW = 0.D0
+        BYGSW = 0.D0
+        BZGSW = 0.D0
+C Reset dipole tilt to custom value
+        PSI = TI
+        PS  = TI
+        SPS = SIN(PSI)
+        CPS = COS(PSI)
+C Set input parameters. Parmod has no meaning here. 
+        PARMOD(1) = PDYN
+        PARMOD(2) = DST
+        PARMOD(3) = B0y
+        PARMOD(4) = B0z
+C        PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
+C Specify name output file
         IF (ID < 10) THEN
           write (filename, "(A3,I1,I1,A4)") "OUT",0,ID,".DAT"
         ELSE
           write (filename, "(A3,I2,A4)") "OUT",ID,".DAT"
         ENDIF
 
-        PARMOD(1) = PDYN
-        PARMOD(2) = Dst
-        PARMOD(3) = B0y
-        PARMOD(4) = B0z
-C
-C  Specify the dipole tilt angle PS, its sine SPS and cosine CPS, entering
-c    in the common block /GEOPACK1/:
-C
-        PSI=0.
-        SPS=SIN(PSI)
-        CPS=COS(PSI)
-
-        IOPT=0
-C           (IN THIS EXAMPLE IOPT IS JUST A DUMMY PARAMETER,
-C                 WHOSE VALUE DOES NOT MATTER)
-c
-c  Trace the field line:
-c
-        OPEN (UNIT=ounit,FILE="output/"//filename,ACTION="write",
+C Compute fields
+        OPEN (UNIT=ounit,FILE=outfolder//"/"//filename,ACTION="write",
      *        STATUS="replace")
-
-        DO k = 1, NZ
-          DO j = 1, NY
-            DO i = 1, NX
-
-              XGSW = Xbeg + (i-1)*dx
-              YGSW = Ybeg + (j-1)*dy
-              ZGSW = Zbeg + (k-1)*dz
-
-              R2 = XGSW*XGSW 
-     *         + YGSW*YGSW 
-     *         + ZGSW*ZGSW
-
-              X = XGSW
-              Y = YGSW
-              IF (R2.LT.RE2) THEN
-                D2 = XGSW*XGSW+YGSW*YGSW
-                Z  = SQRT(D2 + RE2)
-              ELSE
-                Z = ZGSW
-              ENDIF
-
-              CALL T96_01 (IOPT,PARMOD,PSI,X,Y,Z,BXGSW,BYGSW,BZGSW)
-
+C
+        DO k = 1, DIMZ
+          DO j = 1, DIMY
+            DO i = 1, DIMX
+              CALL T96_01 (IOPT,PARMOD,PSI,
+     *                     REAL(XGSW(i)),REAL(YGSW(j)),REAL(ZGSW(k)),
+     *                     BXGSW,BYGSW,BZGSW)
 C -- Routines to include internal B field:
-c            CALL IGRF_GSW_08 (XGSW,YGSW,ZGSW,
-c     *                   HXGSW,HYGSW,HZGSW)
-c            CALL DIP_08 (XGSW,YGSW,ZGSW,
-c     *                   HXGSW,HYGSW,HZGSW)
-C --
-              WRITE(ounit,*) XGSW,YGSW,ZGSW,
-     *                     BXGSW+HXGSW,BYGSW+HYGSW,BZGSW+HZGSW
+C                CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+C     *                 REAL(ZGSW(k)),DXGSW,DYGSW,DZGSW)
+C                CALL IGRF_GSW_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+C     *                   REAL(ZGSW(k)),IXGSW,IYGSW,IZGSW)
+C -- Save output to file
+              WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),     
+     *                   BXGSW+DBLE(DXGSW)+IXGSW,
+     *                   BYGSW+DBLE(DYGSW)+IYGSW,
+     *                   BZGSW+DBLE(DZGSW)+IZGSW
+              ENDDO
             ENDDO
           ENDDO
-        ENDDO
+
         CLOSE(ounit)
       ENDDO
-
       END
+      
+
+
 

@@ -4,7 +4,7 @@
 PYTHON=python3
 
 # Parameters
-MODEL='T89'
+MODEL='T96'
 COLUMN='SWX'
 MU=5 #7
 SIGMA=2
@@ -46,7 +46,7 @@ compile:
 run:
 	(cd 'model/$(MODEL)'; make run)
 
-representer: 
+representer:
 	$(PYTHON) DA/domain.py model/$(MODEL)/output $(COLUMN)  $(X1) $(Z1) --extra $(X2) $(Z2) --extra $(X3) $(Z3) --extra $(X4) $(Z4) --identifier $(IMAGEID) --folder $(FOLDER)
 
 clean:

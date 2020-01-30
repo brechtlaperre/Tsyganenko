@@ -18,12 +18,19 @@ C
 
       INTEGER, PARAMETER :: ounit=20
       INTEGER, PARAMETER :: iunit=21
-      INTEGER :: i, k
+      INTEGER :: i, j, k
       INTEGER, PARAMETER :: DIMX=600
+      INTEGER, PARAMETER :: DIMY=1
       INTEGER, PARAMETER :: DIMZ=600
+      
+      INTEGER, PARAMETER :: LIMR=1.5
+      REAL*8 :: D2 = 0.D0
+      REAL*8 :: R2 = 0.D0
+      REAL*8 :: Z = 0.D0
 
-      REAL*8, DIMENSION(DIMX,DIMZ) :: XGSW
-      REAL*8, DIMENSION(DIMX,DIMZ) :: ZGSW
+      REAL*8, DIMENSION(DIMX) :: XGSW
+      REAL*8, DIMENSION(DIMY) :: YGSW
+      REAL*8, DIMENSION(DIMZ) :: ZGSW
 
       REAL*8 :: PS    = 0.D0
       REAL*8 :: BXGSW = 0.D0
@@ -37,12 +44,15 @@ C
       REAL   :: IZGSW = 0.D0
 
       REAL*8 :: Xbeg = -40.D0
+      REAL*8 :: Ybeg = 0.D0
       REAL*8 :: Zbeg = -30.D0
       REAL*8 :: dx = 0.1D0
+      REAL*8 :: dy = 0.D0
       REAL*8 :: dz = 0.1D0
 
       INTEGER :: IOPT
       REAL :: PDYN
+      REAL :: DST
       REAL :: TI
       REAL :: B0y
       REAL :: B0z
@@ -55,17 +65,27 @@ C
       INTEGER :: ID
       CHARACTER(len=10) :: filename
       CHARACTER(len=10) :: inputfile
+      CHARACTER(len=6) :: outfolder
 
       print *, '  enter filename of input'
       read*, inputfile
+C Automatic output folder choosing for reference case
+      IF (inputfile == 'reference') THEN
+            outfolder = 'refout'
+      ELSE
+            outfolder = 'output'
+      ENDIF
 
 C XIND: solar-wind-magnetosphere driving index, 
 C Typical values of XIND: between 0 (quiet) and 2 (strongly disturbed)      
       DO k = 1, DIMZ
-        DO i = 1, DIMX
-          XGSW (i, k) = Xbeg + (i-1)*dx
-          ZGSW (i, k) = Zbeg + (k-1)*dz
-        ENDDO
+        ZGSW (k) = Zbeg + (k-1)*dz
+      ENDDO
+      DO j = 1, DIMY
+        YGSW (j) = Ybeg + (j-1)*dy
+      ENDDO
+      DO i = 1, DIMX
+        XGSW (i) = Xbeg + (i-1)*dx
       ENDDO
 C
 C   First, call RECALC_08, to define the main field coefficients and, hence, the magnetic
@@ -88,7 +108,7 @@ C Skip first line with column names
 
       DO
       read(iunit,*,IOSTAT=status) ID,VGSEX,VGSEY,VGSEZ,
-     *  PDYN,B0y,B0z,XIND,TI,IOPT
+     *  PDYN,DST,B0y,B0z,XIND,TI,IOPT
         
         write(*, *) 'generating file', ID
 
@@ -121,25 +141,37 @@ C Specify name of output file
         PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
         PS = TI
 
-        OPEN (UNIT=ounit,FILE="output/"//filename,ACTION="write",
+        OPEN (UNIT=ounit,FILE=outfolder//"/"//filename,ACTION="write",
      *        STATUS="replace")
 
         DO k = 1, DIMZ
-          DO i = 1, DIMX
-            CALL TA_2015_B (IOPT,PARMOD,PS,
-     *                     XGSW(i,k),0.D0,ZGSW(i,k),
+          DO j = 1, DIMY
+            DO i = 1, DIMX
+
+              R2 = XGSW(i)*XGSW(i)+YGSW(j)*YGSW(j)+ZGSW(k)*ZGSW(k)
+
+              IF (R2.LT.LIMR) THEN
+                D2 = 1 - XGSW(i)*XGSW(i)-YGSW(j)*YGSW(j)
+                Z = SQRT(D2)
+              ELSE
+                Z = ZGSW(k)
+              ENDIF
+
+              CALL TA_2015_B (IOPT,PARMOD,PS,
+     *                     XGSW(i),YGSW(j),Z,
      *                     BXGSW,BYGSW,BZGSW)
 C -- Routines to include internal B field:
-C            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
-C     *                   HXGSW,HYGSW,HZGSW)
-C            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.D0,
+              CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+     *          REAL(Z),HXGSW,HYGSW,HZGSW)
+C            CALL IGRF_GSW_08 (REAL(XGSW(i,j,k)),0.D0,
 C     *                   REAL(ZGSW(i,k)),IXGSW,IYGSW,IZGSW)
 C -- Save output to file
-                WRITE(ounit,*) XGSW(i,k),0.D0,ZGSW(i,k),
-     *                   BXGSW, BYGSW, BZGSW
-C    *                    BXGSW+DBLE(HXGSW)+DBLE(IXGSW), 
-C     *                   BYGSW+DBLE(HYGSW)+DBLE(IYGSW),
-C     *                   BZGSW+DBLE(HZGSW)+DBLE(IZGSW)
+                WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
+C     *                   BXGSW, BYGSW, BZGSW
+     *                   BXGSW+DBLE(HXGSW),!+DBLE(IXGSW), 
+     *                   BYGSW+DBLE(HYGSW),!+DBLE(IYGSW),
+     *                   BZGSW+DBLE(HZGSW)!+DBLE(IZGSW)
+          ENDDO
         ENDDO
       ENDDO
 
