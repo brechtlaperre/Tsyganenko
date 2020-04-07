@@ -5,46 +5,49 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import seaborn as sns
 import click
+import sys
 
-from preprocess import read_and_parse
+sys.path.append('.')
 
-def accumulate_values(result, ux, uxx, uxy, x, y):
+from DA.preprocess import read_and_parse
+
+def accumulate_values(result, ux, uxx, uxz, x, z):
 
     if ux is None:
         ux = result # The mean E(X)
         uxx = np.multiply(result, result) # The squared mean, or E(X^2)
-        uxy = np.zeros((ux.shape[0], ux.shape[1], len(x))) 
+        uxz = np.zeros((ux.shape[0], ux.shape[1], len(x))) 
         for i, locx in enumerate(x):
-            uxy[:, :, i] = result*result[locx, y[i]]
+            uxz[:, :, i] = result*result[locx, z[i]]
     else:
         ux += result
         uxx += np.multiply(result, result)
         for i, locx in enumerate(x):
-            uxy[:, :, i] += result*result[locx, y[i]]
+            uxz[:, :, i] += result*result[locx, z[i]]
 
-    return ux.astype(np.float64), uxx.astype(np.float64), uxy.astype(np.float64)
+    return ux.astype(np.float64), uxx.astype(np.float64), uxz.astype(np.float64)
 
 
-def compute_domain(ux, uxx, uxy, x, y):
+def compute_domain(ux, uxx, uxy, x, z):
     var_x = uxx - np.multiply(ux, ux)
-    var_y = np.zeros((len(x)))
+    var_z = np.zeros((len(x)))
     cov = np.zeros((var_x.shape[0], var_x.shape[1], len(x)))
     for i, _ in enumerate(x):
-        var_y[i] = var_x[x[i], y[i]]
-        cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], y[i]])
-        dv_ = np.sqrt(var_x*var_y[i])
+        var_z[i] = var_x[x[i], z[i]]
+        cov[:, :, i] = uxy[:, :, i] - ux*(ux[x[i], z[i]])
+        dv_ = np.sqrt(var_x*var_z[i])
         
         div = np.where(dv_ > 0, 1/dv_, 0)
         cov[:, :, i] = np.multiply(cov[:, :, i], div)
     return cov
 
 
-def get_results(folder, x, y):
+def get_results(folder, x, z):
     total = 0
     ext_ux = [None, None, None]
     ext_uxx = [None, None, None]
-    ext_uxy = [None, None, None]    
-    magn_ux, magn_uxx, magn_uxy = None, None, None
+    ext_uxz = [None, None, None]    
+    magn_ux, magn_uxx, magn_uxz = None, None, None
     for root, _, files in os.walk(folder):
         print(root)
         for file_ in files:
@@ -52,22 +55,22 @@ def get_results(folder, x, y):
                 total += 1   
                 grid, ext_B, _, field, magn = read_and_parse(root+'/' + file_, True)                
                 for i, comp in enumerate(ext_B):
-                    ext_ux[i], ext_uxx[i], ext_uxy[i] = accumulate_values(comp, ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
-                magn_ux, magn_uxx, magn_uxy = accumulate_values(magn[0], magn_ux, magn_uxx, magn_uxy, x, y)
+                    ext_ux[i], ext_uxx[i], ext_uxz[i] = accumulate_values(comp, ext_ux[i], ext_uxx[i], ext_uxz[i], x, z)
+                magn_ux, magn_uxx, magn_uxz = accumulate_values(magn[0], magn_ux, magn_uxx, magn_uxz, x, z)
 
     # normalize
     for i in range(3):
-        ext_ux[i] = ext_ux[i]/total # Mean
+        ext_ux[i] = ext_ux[i]/total # Average result
         ext_uxx[i] = ext_uxx[i]/total 
-        ext_uxy[i] = ext_uxy[i]/total
-    magn_ux, magn_uxx, magn_uxy = magn_ux/total, magn_uxx/total, magn_uxy/total
+        ext_uxz[i] = ext_uxz[i]/total
+    magn_ux, magn_uxx, magn_uxz = magn_ux/total, magn_uxx/total, magn_uxz/total
 
     cor_ext = {'Bx': None, 'By': None, 'Bz': None}
     var_ext = {'Bx': None, 'By': None, 'Bz': None}
     for i, key in enumerate(cor_ext.keys()):
         var_ext[key] = ext_uxx[i] - np.multiply(ext_ux[i], ext_ux[i])
-        cor_ext[key] = compute_domain(ext_ux[i], ext_uxx[i], ext_uxy[i], x, y)
-    cor_magn = compute_domain(magn_ux, magn_uxx, magn_uxy, x, y)
+        cor_ext[key] = compute_domain(ext_ux[i], ext_uxx[i], ext_uxz[i], x, z)
+    cor_magn = compute_domain(magn_ux, magn_uxx, magn_uxz, x, z)
 
     return grid, cor_ext, cor_magn, ext_ux, var_ext
 
@@ -109,22 +112,38 @@ def show_and_save(cor, grid, loc, field, varying, note, filename=None):
         plt.close()
 
 
-def compute_matrix_coords(folder, x, y):
+def compute_matrix_coords(folder, x, z):
     xloc = np.zeros(x.shape)
-    yloc = np.zeros(y.shape)
+    zloc = np.zeros(z.shape)
     grid, _, _, _, _ = read_and_parse(folder + '/OUT00.DAT')
+
+    if (abs(x) > 1).any() or (abs(z) > 1).any():
+        # in case the coordinates are absolute
+        xmin = round(grid[0][0, 0])
+        xmax = round(grid[0][0, -1])
+        print(xmin, xmax)
+        zmin = round(grid[2][0, 0])
+        zmax = round(grid[2][-1, 0])
+        if (x > xmin).all() & (x < xmax).all() & (z > zmin).all() & (z < zmax).all():
+            x = x - xmin
+            z = z - zmin
+            x = x/(xmax - xmin)
+            z = z/(zmax - zmin)
+        else:
+            raise ValueError('x and z are out of bounds')
+
     for i in range(len(x)):
-        yloc[i] = int(grid[0].shape[1]*x[i]) # Translate x-pos to columnnumber
-        xloc[i] = int(grid[0].shape[0]*y[i]) # Translate y-pos to rownumber
+        zloc[i] = int(grid[0].shape[1]*x[i]) # Translate x-pos to columnnumber
+        xloc[i] = int(grid[0].shape[0]*z[i]) # Translate y-pos to rownumber
     xloc = xloc.astype(np.int)
-    yloc = yloc.astype(np.int)
+    zloc = zloc.astype(np.int)
 
     loc = np.zeros((len(xloc), 2))
     for i in range(len(xloc)):
-        loc[i, 0] = round(100*grid[0][xloc[i], yloc[i]])/100
-        loc[i, 1] = round(100*grid[2][xloc[i], yloc[i]])/100
+        loc[i, 0] = round(100*grid[0][xloc[i], zloc[i]])/100
+        loc[i, 1] = round(100*grid[2][xloc[i], zloc[i]])/100
 
-    return xloc, yloc, loc
+    return xloc, zloc, loc
 
 @click.command()
 @click.argument('source', type=click.Path(exists=True))
@@ -148,9 +167,9 @@ def main(source, varying, coords, extra, identifier, folder):
     x_coords = np.array(x_coords)
     z_coords = np.array(z_coords)
 
-    x, y, pos = compute_matrix_coords(source, x_coords, z_coords)
+    x, z, pos = compute_matrix_coords(source, x_coords, z_coords)
 
-    grid, cor_ext, cor_magn, field, variance = get_results(source, x, y)
+    grid, cor_ext, cor_magn, field, variance = get_results(source, x, z)
     
     text=varying[0]
     if len(varying) > 1:
@@ -182,21 +201,21 @@ def main(source, varying, coords, extra, identifier, folder):
     show_and_save(cor_magn, grid, loc, field, text, '|B|', f)
     """
 
-    if autosave:
-        f = filename + 'variance'
-    plot_variance(variance, grid, field, f)    
+    #if autosave:
+    #    f = filename + 'variance'
+    #plot_variance(variance, grid, field, f)    
 
-    for ind, (xs, ys) in enumerate(pos):
+    for ind, (xs, zs) in enumerate(pos):
         if autosave:
             f = filename + 'coordinate_' + str(ind)
-        create_image(cor_ext, cor_magn, grid, field, xs, ys, ind, f) 
+        create_image(cor_ext, cor_magn, grid, field, xs, zs, ind, f) 
 
 def plot_variance(variance, grid, field, filename):
     k = list(variance.keys())
     fig, axes = plt.subplots(1, len(k), figsize=(10,6), squeeze=True)
     labels = ['(a)', '(b)', '(c)']
     for i, axi in enumerate(axes.flatten()):
-        surf = axi.imshow(variance[k[i]], extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
+        surf = axi.imshow(np.log(variance[k[i]]), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
         axi.set_title('DoI of {}'.format(k[i]))
         axi.text(0.05, 1.1, labels[i], transform=axi.transAxes, fontsize=12, va='top', ha='right')
         divider = make_axes_locatable(axi)
@@ -216,7 +235,7 @@ def plot_variance(variance, grid, field, filename):
         plt.savefig(filename+'.png', dpi=800, format='png', transparent=False, bbox_inches='tight', pad_inches=0)
         plt.close()
 
-def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
+def create_image(cor_ext, cor_magn, grid, field, x, z, ind, filename):
     k = list(cor_ext.keys())
     # k = k[1:] # remove first element of the keys
     fig, axes = plt.subplots(1, len(k), figsize=(10,6), sharey=True)
@@ -234,8 +253,8 @@ def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
         axi.set_ylim(np.min(grid[2]),np.max(grid[2]))
         axi.set_xlabel(r'x/$R_E$')
         axi.set_ylabel(r'z/$R_E$')
-        axi.plot(x, y, 'c*')
-        axi.plot(0, 0, 'go')
+        axi.plot(x, z, 'g*')
+        axi.plot(0, 0, 'ko')
         divider = make_axes_locatable(axi)
         cax = divider.append_axes("right", size="5%", pad=0.05)
 
@@ -256,8 +275,16 @@ def create_image(cor_ext, cor_magn, grid, field, x, y, ind, filename):
         plt.savefig(filename+'.png', dpi=800, format='png', transparent=False, bbox_inches='tight', pad_inches=0)
         plt.close()
 
-    
-
 if __name__ == '__main__':
     main()
+    #x = np.array([0.5, 0.917, 0.333, 0.5])
+    #z = np.array([0.583, 0.999, 0.417, 0.833])
+    #source = 'model/TA15/output'
+
+    #x = np.array([-15, 10, 19, -30])
+    #z = np.array([0, -15, 15, 10])
+
+    #coords = compute_matrix_coords(source, x, z)
+    #print(coords)
+
 

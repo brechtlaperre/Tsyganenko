@@ -1,9 +1,13 @@
+import sys
 import pandas as pd
 import numpy as np
 import click
 
-def gen_init_states(base, parameters, mu, sigma, num=100, sign=None):
+sys.path.append('.')
 
+from src.data.preprocess_input import read_omni_data, read_tsyg_data, prepare_dataset
+
+def gen_init_states(base, parameters, mu, sigma, num=100, sign=None):
     init = base.loc[np.repeat(base.index.values, num)].reset_index(drop=True)
     for i, p in enumerate(parameters):
         if sign is not None:
@@ -22,14 +26,8 @@ def gen_init_states(base, parameters, mu, sigma, num=100, sign=None):
                 
     return init
 
-@click.command()
-@click.argument('column', type=str, nargs=-1)
-@click.argument('mu', type=float, default=0)
-@click.argument('sigma', type=float, default=0.05)
-@click.argument('amount', type=int, default=100)
-@click.option('--sign', type=bool, default=False)
-def main(column, mu, sigma, amount, sign):
-    '''Generates Tsyganenko inputfile named TA15_input
+def generate_perturbed_input(column, mu, sigma, amount, sign):
+    '''Generates Tsyganenko inputfile
     Generates inputfile useable by model TA15. 
     It varies the value in column given, by picking randomly from a gaussian distribution
     The other values remain fixed.
@@ -42,9 +40,7 @@ def main(column, mu, sigma, amount, sign):
     Output:
         file named TA15_output, useable by model TA15.
     '''
-    print(mu, sigma, amount)
     allowed_columns = ['PDYN', 'B0y', 'B0z', 'XIND', 'VGSEX', 'VGSEY', 'VGSEZ']
-
     for c in column:
         assert c in allowed_columns, "Error, unknown variable {}. Known variables: {}".format(c, allowed_columns)
 
@@ -65,10 +61,8 @@ def main(column, mu, sigma, amount, sign):
                 except ValueError:
                     print("Error, that is not a number.")
 
-    base = pd.DataFrame(columns=allowed_columns, 
-                        data=[[2.0, 1, 8, 0, -400.0, 0.0, 0.0]])
+    base = pd.DataFrame(columns=allowed_columns, data=[[2.0, 1, 8, 0, -400.0, 0.0, 0.0]])
     base.index.name = 'ID'
-
 
     if sign:
         sign = []
@@ -81,8 +75,18 @@ def main(column, mu, sigma, amount, sign):
         sign=None
 
     init = gen_init_states(base, column, mu, sigma, amount, sign)
+    return init
 
-    init.to_csv('DA/input/TA15_input')
+@click.command()
+@click.argument('column', type=str, nargs=-1)
+@click.argument('mu', type=float, default=0)
+@click.argument('sigma', type=float, default=0.05)
+@click.argument('amount', type=int, default=100)
+@click.option('--sign', type=bool, default=False)
+def main(column, mu, sigma, amount, sign):
+    states = generate_perturbed_input(column, mu, sigma, amount, sign)
+    states.to_csv('DA/input/TA15_input.csv')
 
 if __name__ == '__main__':
     main()
+    

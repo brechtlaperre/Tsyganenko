@@ -1,151 +1,137 @@
-C**************************************************
-C
-      PROGRAM T89_RUNNER
-      COMMON /GEOPACK1/ AA(10),SPS,CPS,BB(3),PSI,CC(18)
-C
-      EXTERNAL T89D_DP, DIP_08, IGRF_GSW_08
+C Basis file for running Tsyganenko experiment. 
+C The goal of this file is to paste this into a folder containing your Tsyganenko model
+C and change the name of the function that is supposed to be called. 
+C Make sure the geopack is also in this folder.
 
-C Define IO parameters
-      INTEGER, PARAMETER :: iunit = 21
-      INTEGER, PARAMETER :: ounit = 20
+      PROGRAM BASELINE_TSYGANENKO
+      IMPLICIT NONE
+      REAL ::           AA(10),SPS,CPS,BB(3),PSI,CC(18)
+      COMMON /GEOPACK1/ AA,SPS,CPS,BB,PSI,CC
+      
+      EXTERNAL DIP_08, IGRF_GSW_08
+      EXTERNAL T89D_DP ! DOUBLE PRECISION!!!!!!
+C Placeholder name, give name of TS model here
+      
+C Define boundary
+      INTEGER, PARAMETER :: DIMX=600
+      INTEGER, PARAMETER :: DIMY=1
+      INTEGER, PARAMETER :: DIMZ=600
+      
+      REAL*8 XGSW(DIMX),YGSW(DIMY),ZGSW(DIMZ),dx,dy,dz
+      REAL*8 EBX,EBY,EBZ,PARMOD(10)
+      INTEGER IOPT
+      ! Define input parameters
+      INTEGER :: ID, IYEAR, IDOY, IHOUR, IMINUTE
+      REAL :: By,Bz,VX,VY,VZ,PDYN,DST,N,B
+
+      REAL*8, DIMENSION(3) :: init=(/ -40.0, 0.0, -35.0 /)
+      REAL*8, DIMENSION(3) :: fin=(/ 20.0, 0.0, 35.0 /)
+
+      INTEGER, PARAMETER :: LIMR=1.5
+      REAL*8 :: D2 = 0.D0
+      REAL*8 :: R2 = 0.D0
+      REAL*8 :: Z = 0.D0
+
+C Define output parameters
+      REAL :: DXGSW,DYGSW,DZGSW ! Correct type normally
+      REAL :: IXGSW,IYGSW,IZGSW ! Same for this one
+      
+C Read file with parameters
       INTEGER :: i, j, k
-C
-C DEFINE GRID
-      INTEGER, PARAMETER :: DIMX = 600
-      INTEGER, PARAMETER :: DIMY = 1
-      INTEGER, PARAMETER :: DIMZ = 600 
-C
-      REAL*8, DIMENSION(DIMX) :: XGSW
-      REAL*8, DIMENSION(DIMY) :: YGSW
-      REAL*8, DIMENSION(DIMZ) :: ZGSW
-C
-C Standard start: Xbeg = -40.D0, Zbeg = -30.D0
-      REAL*8 :: Xbeg = -40.D0
-      REAL*8 :: Ybeg = 0.D0
-      REAL*8 :: Zbeg = -30.D0
-      REAL*8 :: dx = 0.1D0
-      REAL*8 :: dy = 0.1D0
-      REAL*8 :: dz = 0.1D0
-C
-C Define parameters
-C      
-      DIMENSION PARMOD(10)
-      REAL*8 :: PS    = 0.D0
-      REAL*8 :: BXGSW = 0.D0
-      REAL*8 :: BYGSW = 0.D0
-      REAL*8 :: BZGSW = 0.D0
-      REAL :: DXGSW = 0.D0
-      REAL :: DYGSW = 0.D0
-      REAL :: DZGSW = 0.D0
-      REAL :: IXGSW = 0.D0
-      REAL :: IYGSW = 0.D0
-      REAL :: IZGSW = 0.D0
-C
-C Define inputparameters
-C
-      INTEGER :: IOPT
-      REAL :: PDYN
-      REAL :: TI
-      REAL :: B0y
-      REAL :: B0z
-      REAL :: DST
-      REAL :: XIND
-      REAL :: VGSEX
-      REAL :: VGSEY
-      REAL :: VGSEZ
-C
+      INTEGER, PARAMETER :: ounit=20
+      INTEGER, PARAMETER :: iunit=21
       INTEGER :: status 
-      INTEGER :: ID
-      CHARACTER(len=10) :: filename
-      CHARACTER(len=10) :: inputfile
+      CHARACTER(100) :: inputfile
+      CHARACTER(55) :: inputfolder
       CHARACTER(len=6) :: outfolder
+      CHARACTER(len=9) :: createfilename
+      inputfolder='/mnt/c/Users/u0124144/'//
+     *            'Documents/Tsyganenko/model/input/'
+      outfolder = 'output'
 
 
-      print *, '  enter filename of input'
-      read*, inputfile
-C
-      IF (inputfile == 'reference') THEN
-            outfolder = 'refout'
-      ELSE
-            outfolder = 'output'
-      ENDIF
-
+      dx = (fin(1) - init(1)) / DIMX
+      dy = (fin(2) - init(2)) / DIMY
+      dz = (fin(3) - init(3)) / DIMZ
+            
       DO k = 1, DIMZ
         DO j = 1, DIMY
           DO i = 1, DIMX  
-            XGSW(i) = Xbeg + (i-1)*dx
-            YGSW(j) = Ybeg + (j-1)*dy
-            ZGSW(k) = Zbeg + (k-1)*dz
+            XGSW(i) = init(1) + (i-1)*dx
+            YGSW(j) = init(2) + (j-1)*dy
+            ZGSW(k) = init(3) + (k-1)*dz
           ENDDO
         ENDDO
       ENDDO
-C
-      OPEN (UNIT=iunit,FILE=inputfile,ACTION="read")
-      READ(iunit,*)
-C Skip first line with column names
-      DO
-        read(iunit,*,IOSTAT=status) ID,VGSEX,VGSEY,VGSEZ,
-     *  PDYN,DST,B0y,B0z,XIND,TI,IOPT
-        
-        IF (status < 0) THEN
-          ! In case end of file is reached
-          EXIT
-        END IF
 
-        write(*, *) 'Generating output file ', ID
-
-        CALL RECALC_08 (2004,129,9,0,0,VGSEX,VGSEY,VGSEZ)
-C reset parameters
-        BXGSW = 0.D0
-        BYGSW = 0.D0
-        BZGSW = 0.D0
-C Reset dipole tilt to custom value
-C        PSI = TI
-C        PS  = TI
-C        SPS = SIN(PSI)
-C        CPS = COS(PSI)
-C Set input parameters. Parmod has no meaning here. 
-        PARMOD(1) = PDYN
-        PARMOD(2) = B0y
-        PARMOD(3) = B0z
-        PARMOD(4) = XIND
-        PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
-C Specify name output file
-        IF (ID < 10) THEN
-          write (filename, "(A3,I1,I1,A4)") "OUT",0,ID,".DAT"
-        ELSE
-          write (filename, "(A3,I2,A4)") "OUT",ID,".DAT"
-        ENDIF
-
-C Compute fields
-        OPEN (UNIT=ounit,FILE=outfolder//"/"//filename,ACTION="write",
-     *        STATUS="replace")
-C
-        DO k = 1, DIMZ
-          DO j = 1, DIMY
-            DO i = 1, DIMX
-              CALL T89D_DP (IOPT,PARMOD,PS,
-     *                     XGSW(i),YGSW(j),ZGSW(k),
-     *                     BXGSW,BYGSW,BZGSW)
-C -- Routines to include internal B field:
-                CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
-     *                 REAL(ZGSW(k)), DXGSW,DYGSW,DZGSW)
-                CALL IGRF_GSW_08 (REAL(XGSW(i)),REAL(YGSW(j)),
-     *                   REAL(ZGSW(k)),IXGSW,IYGSW,IZGSW)
-C -- Save output to file
-              WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
-C     *                   BXGSW, BYGSW, BZGSW
-     *                   BXGSW+DBLE(DXGSW)+DBLE(IXGSW),
-     *                   BYGSW+DBLE(DYGSW)+DBLE(IYGSW),
-     *                   BZGSW+DBLE(DZGSW)+DBLE(IZGSW)
-              ENDDO
-            ENDDO
-          ENDDO
-
-        CLOSE(ounit)
-      ENDDO
-      END
       
 
+      print *, '  enter filename of input'
+      read*, inputfile
+      OPEN(unit=iunit,file=inputfolder//TRIM(ADJUSTL(inputfile)),
+     * status="old",action='read')
+C Skip first line      
+      read(iunit,*) 
 
+      loop_file: DO
+        read(iunit,*,IOSTAT=status) ID,IYEAR,IDOY,IHOUR,IMINUTE,By,Bz,
+     *   VX,VY,VZ,PDYN,DST,N,B
+      
+        write(*, *) 'Generating file ', ID
+
+        PARMOD(1) = PDYN
+        PARMOD(2) = DST
+        PARMOD(3) = By
+        PARMOD(4) = Bz
+        PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
+
+        CALL RECALC_08 (IYEAR,IDOY,IHOUR,IMINUTE,0,VX,VY,VZ)
+
+        IF (status < 0) THEN
+            EXIT
+        END IF
+
+        IOPT = 1
+
+        OPEN (UNIT=ounit,FILE=outfolder//"/"//createfilename(ID),
+     *   ACTION="write", STATUS="replace")
+
+        write(*,*) IOPT, PARMOD, PSI
+        loop_z: DO k = 1, DIMZ
+          loop_y: DO j = 1, DIMY
+            loop_x: DO i = 1, DIMX
+              CALL T89D_DP (IOPT,PARMOD,PSI,
+     *                      XGSW(i),YGSW(j),ZGSW(k),
+     *                      EBX,EBY,EBZ)
+C -- Routines to include internal B field:
+              CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+     *               REAL(ZGSW(k)),DXGSW,DYGSW,DZGSW)
+              CALL IGRF_GSW_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+     *               REAL(ZGSW(k)),IXGSW,IYGSW,IZGSW)
+C -- Save output to file
+              WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
+     *                       IXGSW + DXGSW, EBX,
+     *                       IYGSW + DYGSW, EBY,
+     *                       IZGSW + DZGSW, EBZ
+            ENDDO loop_x
+          ENDDO loop_y
+        ENDDO loop_z
+      
+      END DO loop_file
+
+      END PROGRAM BASELINE_TSYGANENKO
+
+
+      function createfilename(ID) result(name)
+            ! Create savefile name based on ID of the line of the inputfile
+            implicit none
+            integer, intent(in) :: ID ! input
+            CHARACTER(len=9) :: name
+            IF (ID < 10) THEN
+                  write (name, "(A3,I1,I1,A4)") "OUT",0,ID,".DAT"
+            ELSE
+                  write (name, "(A3,I2,A4)") "OUT",ID,".DAT"
+            ENDIF
+            print*,name
+      end function createfilename
 

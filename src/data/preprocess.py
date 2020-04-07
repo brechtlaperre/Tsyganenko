@@ -60,29 +60,36 @@ def read_and_parse(source, background=False):
     x, y, z, Btx, Bty, Btz = np.genfromtxt(source, unpack=True)
 
     x = x.astype(np.float64)
+    x = np.round(x, decimals=3)
     y = y.astype(np.float64)
+    y = np.round(y, decimals=3)
     z = z.astype(np.float64)
+    z = np.round(z, decimals=3)
+
 
     nx = np.where(x[1:] == x[0])[0][0] + 1
     ny = np.where(y[1:] == y[0])[0][0] + 1
-    nz = int(len(z) / nx)
+    if nx > ny:
+        nz = int(len(z) / nx)
+    else:
+        nz = int(len(z) / ny)
     # Reshape results back to the dimensions used in the original program
     # Create and scale the grid, reverse x and z axis
 
     x   = x.reshape((nz,ny,nx))
     y   = y.reshape((nz,ny,nx))
     z   = z.reshape((nz,ny,nx))
-    x   = x[:-1,0,:-1] #* (R_sim/di)
-    y   = y[:-1,0,:-1] #* (R_sim/di)
-    z   = z[:-1,0,:-1] #* (R_sim/di)
+    x   = np.squeeze(x) #* (R_sim/di)
+    y   = np.squeeze(y) #* (R_sim/di)
+    z   = np.squeeze(z) #* (R_sim/di)
 
     # Read and scale the magnetic field
     Btx = Btx.reshape((nz,ny,nx))
     Bty = Bty.reshape((nz,ny,nx))
     Btz = Btz.reshape((nz,ny,nx))
-    Btx = Btx[:-1,0,:-1]
-    Bty = Bty[:-1,0,:-1]
-    Btz = Btz[:-1,0,:-1]
+    Btx = np.squeeze(Btx)
+    Bty = np.squeeze(Bty)
+    Btz = np.squeeze(Btz)
 
 
     # fix larg dipole at points (0,0), (0+Delta x, 0), (0-Delta x, 0)
@@ -97,10 +104,10 @@ def read_and_parse(source, background=False):
 
     # Scale external B field
     #TODO This needs explanation of why this must happen
-    L = 2.0e-6
-    Btx = L*Btx
-    Bty = L*Bty
-    Btz = L*Btz
+    #L = 2.0e-6
+    #Btx = L*Btx
+    #Bty = L*Bty
+    #Btz = L*Btz
 
     if ~background:
         B0x, B0y, B0z = compute_background(x, y, z, planet='Earth')
@@ -125,4 +132,6 @@ def read_and_parse(source, background=False):
     return (x, y, z), (Btx, Bty, Btz), (B0x, B0y, B0z), (Bx, By, Bz), (Btm, BDm, Bm)
 
 if __name__ == '__main__':
+    A, B, C, D, E = read_and_parse('model/T89/output/OUT00.dat')
+    print(A)
     print('Preprocessing.py')
