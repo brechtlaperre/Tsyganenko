@@ -12,6 +12,8 @@ Possible models to choose are
 * T96
 * TS04
 * TA15
+
+
 The `INPUT` name should be the name of a file in `model/input`, without `.csv`. For example, if an inputfile named `input_Vx.csv` exists, the value for `INPUT` would be `input_Vx`. The ensemble will be saved in the `output` folder of the respective model. The ensemble is created by simply running
 ```
 make ensemble
