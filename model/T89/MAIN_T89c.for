@@ -19,9 +19,8 @@ C Define boundary
       
       REAL*8 XGSW(DIMX),YGSW(DIMY),ZGSW(DIMZ),dx,dy,dz
       REAL*8 EBX,EBY,EBZ,PARMOD(10)
-      INTEGER IOPT
       ! Define input parameters
-      INTEGER :: ID, IYEAR, IDOY, IHOUR, IMINUTE
+      INTEGER :: ID, IYEAR, IDOY, IHOUR, IMINUTE, IOPT
       REAL :: By,Bz,VX,VY,VZ,PDYN,DST,N,B
 
       REAL*8, DIMENSION(3) :: init=(/ -40.0, 0.0, -35.0 /)
@@ -41,18 +40,28 @@ C Read file with parameters
       INTEGER, PARAMETER :: ounit=20
       INTEGER, PARAMETER :: iunit=21
       INTEGER :: status 
-      CHARACTER(100) :: inputfile
-      CHARACTER(55) :: inputfolder
+      CHARACTER(100) :: inputfold
       CHARACTER(len=6) :: outfolder
       CHARACTER(len=9) :: createfilename
-      inputfolder='/mnt/c/Users/u0124144/'//
-     *            'Documents/Tsyganenko/model/input/'
+C Read command line arguments
+      INTEGER :: num_args, ix
+      CHARACTER(len=12) :: inputfile
+
+      num_args = command_argument_count()
+      IF (num_args == 0) ERROR STOP
+      IF (num_args > 1) ERROR STOP
+
+      call get_command_argument(1,inputfile)
+      write(*, *) 'Input is ', TRIM(inputfile)
+
+      ! And done
+      inputfold='/mnt/c/Users/u0124144/'//
+     *          'Documents/Tsyganenko/model/input/'//
+     *          TRIM(ADJUSTL(inputfile))//'.csv'
       outfolder = 'output'
-
-
-      dx = (fin(1) - init(1)) / DIMX
-      dy = (fin(2) - init(2)) / DIMY
-      dz = (fin(3) - init(3)) / DIMZ
+      dx = nint((fin(1) - init(1)) / DIMX * 1000.0) * 1E-3
+      dy = nint((fin(2) - init(2)) / DIMY * 1000.0) * 1E-3
+      dz = nint((fin(3) - init(3)) / DIMZ * 1000.0) * 1E-3
             
       DO k = 1, DIMZ
         DO j = 1, DIMY
@@ -64,14 +73,10 @@ C Read file with parameters
         ENDDO
       ENDDO
 
-      
-
-      print *, '  enter filename of input'
-      read*, inputfile
-      OPEN(unit=iunit,file=inputfolder//TRIM(ADJUSTL(inputfile)),
+      OPEN(unit=iunit,file=TRIM(ADJUSTL(inputfold)),
      * status="old",action='read')
-C Skip first line      
-      read(iunit,*) 
+      ! Skip first line      
+      read(iunit,*)
 
       loop_file: DO
         read(iunit,*,IOSTAT=status) ID,IYEAR,IDOY,IHOUR,IMINUTE,By,Bz,
@@ -96,7 +101,6 @@ C Skip first line
         OPEN (UNIT=ounit,FILE=outfolder//"/"//createfilename(ID),
      *   ACTION="write", STATUS="replace")
 
-        write(*,*) IOPT, PARMOD, PSI
         loop_z: DO k = 1, DIMZ
           loop_y: DO j = 1, DIMY
             loop_x: DO i = 1, DIMX
@@ -110,9 +114,9 @@ C -- Routines to include internal B field:
      *               REAL(ZGSW(k)),IXGSW,IYGSW,IZGSW)
 C -- Save output to file
               WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
-     *                       IXGSW + DXGSW, EBX,
-     *                       IYGSW + DYGSW, EBY,
-     *                       IZGSW + DZGSW, EBZ
+     *                       IXGSW + DXGSW + EBX,
+     *                       IYGSW + DYGSW + EBY,
+     *                       IZGSW + DZGSW + EBZ
             ENDDO loop_x
           ENDDO loop_y
         ENDDO loop_z

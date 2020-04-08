@@ -4,15 +4,15 @@
 PYTHON=python3
 
 # Parameters
-MODEL='T96'
-INPUT='input1'
+MODEL='TA15'
+INPUT='input_Vx'
 IMAGEID='2004_04_09'
 FOLDER='report_januari/$(MODEL)/'
-COLUMN='SWX'
-MU=5 #7
-SIGMA=2
+COLUMN='Vx'
+MU=1 #7
+SIGMA=0.1
 ENSEMBLE_SIZE=30
-SIGN=True
+SIGN=False
 
 # Coords. Either less then zero for percentages, or values in x/R_e
 X1= 15 #0.5 #.95 # horizontal position
@@ -27,17 +27,11 @@ Z3= 5 #.417
 X4= -20 #.5
 Z4= -3 #.833
 
-src/DA/input/TA15_input:
-	$(PYTHON) DA/generate_input.py --sign $(SIGN) $(COLUMN) -- $(MU) $(SIGMA) $(ENSEMBLE_SIZE) 
+timestamp:
+	$(PYTHON) src/data/generate_timestamp_input.py --sign $(SIGN) $(COLUMN) -- $(MU) $(SIGMA) $(ENSEMBLE_SIZE) 
 
-model/TA15/TA15_input: DA/input/TA15_input
-	mv $@ model/$(MODEL)/TA_input_old
-	mv $< $@
-
-output_folder:
-	mkdir model/$(MODEL)/output
-
-new_ensemble: model/TA15/TA15_input output_folder compile run
+timeseries:
+	$(PYTHON) src/data/generate_timeseries_input.py 
 
 ensemble: compile run
 
@@ -53,12 +47,8 @@ representer:
 clean:
 	rm DA/input/TA15_input
 
-movies/$(MODEL)/$(INPUT):
-	mkdir movies/$(MODEL)/$(INPUT)
-
 movie:
 	$(PYTHON) src/visualize/generate_images.py $(INPUT) $(MODEL)
 	ffmpeg -r 1 -i movies/$(MODEL)/$(INPUT)/frame%02d.png -vcodec mpeg4 -y movies/$(MODEL)/$(INPUT)/movie.mp4
-	
 	
 all: ensemble representer

@@ -1,144 +1,141 @@
-C******************************************************************************
-C
-      PROGRAM EXAMPLE2
+C Basis file for running Tsyganenko experiment. 
+C The goal of this file is to paste this into a folder containing your Tsyganenko model
+C and change the name of the function that is supposed to be called. 
+C Make sure the geopack is also in this folder.
+
+      PROGRAM BASELINE_TSYGANENKO
       IMPLICIT NONE
       REAL ::           AA(10),SPS,CPS,BB(3),PSI,CC(18)
       COMMON /GEOPACK1/ AA,SPS,CPS,BB,PSI,CC
-C 
-c be sure to include an EXTERNAL statement with the names of (i) a magnetospheric
-c external field model and (ii) Earth's internal field model.
-c
-      EXTERNAL DIP_08
-      EXTERNAL TS04
-C
-C  X,Y,Z Locations
-C
-      REAL*8, DIMENSION(10) :: PARMOD
+      
+      EXTERNAL DIP_08, IGRF_GSW_08
+      EXTERNAL T04_s
+C Placeholder name, give name of TS model here
+      
+C Define boundary
+      INTEGER, PARAMETER :: DIMX=600
+      INTEGER, PARAMETER :: DIMY=1
+      INTEGER, PARAMETER :: DIMZ=600
+      
+      REAL XGSW(DIMX),YGSW(DIMY),ZGSW(DIMZ),dx,dy,dz
+      REAL PARMOD(10),PS,EBX,EBY,EBZ
+      ! Define input parameters
+      INTEGER :: ID, IYEAR, IDOY, IHOUR, IMINUTE, IOPT
+      REAL :: By,Bz,VX,VY,VZ,PDYN,DST,N,B
 
+      REAL, DIMENSION(3) :: init=(/ -40, 0, -35 /)
+      REAL, DIMENSION(3) :: fin=(/ 20, 0, 35 /)
+
+      INTEGER, PARAMETER :: LIMR=1.5
+      REAL*8 :: D2 = 0.D0
+      REAL*8 :: R2 = 0.D0
+      REAL*8 :: Z = 0.D0
+
+C Define output parameters
+      REAL :: DXGSW,DYGSW,DZGSW ! Correct type normally
+      REAL :: IXGSW,IYGSW,IZGSW ! Same for this one
+      
+C Read file with parameters
+      INTEGER :: i, j, k
       INTEGER, PARAMETER :: ounit=20
       INTEGER, PARAMETER :: iunit=21
-      INTEGER :: IOPT
-      INTEGER :: i, k
-      INTEGER, PARAMETER :: DIMX=600
-      INTEGER, PARAMETER :: DIMZ=350
+      INTEGER :: status 
+      CHARACTER(100) :: inputfold
+      CHARACTER(len=6) :: outfolder
+      CHARACTER(len=9) :: createfilename
+C Read command line arguments
+      INTEGER :: num_args, ix
+      CHARACTER(len=12) :: inputfile
+      
+      num_args = command_argument_count()
+      IF (num_args == 0) ERROR STOP
+      IF (num_args > 1) ERROR STOP
 
-      REAL*8, DIMENSION(DIMX,DIMZ) :: XGSW
-      REAL*8, DIMENSION(DIMX,DIMZ) :: ZGSW
+      call get_command_argument(1,inputfile)
+      write(*, *) 'Input is ', TRIM(inputfile)
 
-      REAL*8 :: PS    = 0.D0
-      REAL*8 :: BXGSW = 0.D0
-      REAL*8 :: BYGSW = 0.D0
-      REAL*8 :: BZGSW = 0.D0
-      REAL   :: HXGSW = 0.D0
-      REAL   :: HYGSW = 0.D0
-      REAL   :: HZGSW = 0.D0
+C And done
+      inputfold='/mnt/c/Users/u0124144/'//
+     *          'Documents/Tsyganenko/model/input/'//
+     *          TRIM(ADJUSTL(inputfile))//'.csv'
+      outfolder = 'output'
+      dx = nint((fin(1) - init(1)) / DIMX * 1000.0) * 1E-3
+      dy = nint((fin(2) - init(2)) / DIMY * 1000.0) * 1E-3
+      dz = nint((fin(3) - init(3)) / DIMZ * 1000.0) * 1E-3
 
-      REAL*8 :: Xbeg = -40.D0
-      REAL*8 :: Zbeg = -35.D0
-      REAL*8 :: dx = 0.1D0
-      REAL*8 :: dz = 0.2D0
-
-      REAL :: PDYN
-      REAL :: B0y
-      REAL :: B0z
-      REAL :: XIND
-      REAL :: VGSEX
-      REAL :: VGSEY
-      REAL :: VGSEZ
-    
-      INTEGER :: Status 
-      INTEGER :: ID
-      CHARACTER(len=10) :: filename
-C XIND: solar-wind-magnetosphere driving index, 
-C Typical values of XIND: between 0 (quiet) and 2 (strongly disturbed)      
+      write(*,*) dx, dy, dz
+            
       DO k = 1, DIMZ
-        DO i = 1, DIMX
-          XGSW (i, k) = Xbeg + (i-1)*dx
-          ZGSW (i, k) = Zbeg + (k-1)*dz
+        DO j = 1, DIMY
+          DO i = 1, DIMX  
+            XGSW(i) = init(1) + (i-1)*dx
+            YGSW(j) = init(2) + (j-1)*dy
+            ZGSW(k) = init(3) + (k-1)*dz
+          ENDDO
         ENDDO
       ENDDO
-C
-C   First, call RECALC_08, to define the main field coefficients and, hence, the magnetic
-C      moment of the geodipole for IYEAR=1997 and IDAY=350.
-C   The universal time and solar wind direction does not matter in this example, 
-C   because here we explicitly specify the tilt angle (hence, the orientation of 
-C   dipole in the GSW coordinates), so we arbitrarily set IHOUR=MIN=ISEC=0 and 
-C   VGSEX=-400.0, VGSEY=VGSEZ=0 (any other values would be equally OK):
-C
-      CALL RECALC_08 (1997,350,0,0,0,-400.0,0.0,0.0)
-C
-C  Specify the dipole tilt angle PS, its sine SPS and cosine CPS, entering
-c    in the common block /GEOPACK1/:
-C
 
-      OPEN (UNIT=iunit,FILE="TA15_input",ACTION="read")
-
-C Skip first line with column names
+      OPEN(unit=iunit,file=TRIM(ADJUSTL(inputfold)),
+     * status="old",action='read')
+C Skip first line      
       read(iunit,*) 
 
-      DO
-      read(iunit,*,IOSTAT=Status) ID,PDYN,B0y,B0z,XIND,VGSEX,VGSEY,VGSEZ
-        
-        write(*, *) 'generating file', ID
+      loop_file: DO
+        read(iunit,*,IOSTAT=status) ID,IYEAR,IDOY,IHOUR,IMINUTE,By,Bz,
+     *   VX,VY,VZ,PDYN,DST,N,B
+      
+        write(*, *) 'Generating file ', ID
 
-C       CALL RECALC_08 (1997,350,0,0,0,VGSEX,VGSEY,VGSEZ)
+        CALL RECALC_08 (IYEAR,IDOY,IHOUR,IMINUTE,0,VX,VY,VZ)
 
-        PS    = 0.D0
-        BXGSW = 0.D0
-        BYGSW = 0.D0
-        BZGSW = 0.D0    
-
-        IF (Status < 0) THEN
-          ! In case end of file is reached
-          EXIT
-        END IF
-C Specify name of output file
-        IF (ID < 10) THEN
-          write (filename, "(A3,I1,I1,A4)") "OUT",0,ID,".DAT"
-        ELSE
-          write (filename, "(A3,I2,A4)") "OUT",ID,".DAT"
-        ENDIF
-
-        PSI=0.
-        SPS=SIN(PSI)
-        CPS=COS(PSI)
-
-        IOPT=0
-C           (IN THIS EXAMPLE IOPT IS JUST A DUMMY PARAMETER,
-C                 WHOSE VALUE DOES NOT MATTER)
         PARMOD(1) = PDYN
-        PARMOD(2) = B0y
-        PARMOD(3) = B0z
-        PARMOD(4) = XIND
+        PARMOD(2) = DST
+        PARMOD(3) = By
+        PARMOD(4) = Bz
         PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
-        PS = 0.D0
 
-        IOPT=0
-C           (IN THIS EXAMPLE IOPT IS JUST A DUMMY PARAMETER,
-C                 WHOSE VALUE DOES NOT MATTER)
-c
+        IF (status < 0) THEN
+            EXIT
+        END IF
 
-        OPEN (UNIT=ounit,FILE="output/"//filename,ACTION="write",
-     *        STATUS="replace")
+        OPEN (UNIT=ounit,FILE=outfolder//"/"//createfilename(ID),
+     *   ACTION="write", STATUS="replace")
 
-        DO k = 1, DIMZ
-          DO i = 1, DIMX
-            CALL T04_s (IOPT,PARMOD,PS,
-     *                     XGSW(i,k),0.D0,ZGSW(i,k),
-     *                     BXGSW,BYGSW,BZGSW)
+        loop_z: DO k = 1, DIMZ
+          loop_y: DO j = 1, DIMY
+            loop_x: DO i = 1, DIMX
+              CALL T04_s (IOPT,PARMOD,PSI,
+     *                   XGSW(i),YGSW(j),ZGSW(k),
+     *                   EBX,EBY,EBZ)
 C -- Routines to include internal B field:
-C            CALL DIP_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
-C     *                   HXGSW,HYGSW,HZGSW)
-            CALL IGRF_GSW_08 (REAL(XGSW(i,k)),0.0,REAL(ZGSW(i,k)),
-     *                   HXGSW,HYGSW,HZGSW)
-C --
-          WRITE(ounit,*) XGSW(i,k),0.D0,ZGSW(i,k),
-     *                   BXGSW+DBLE(HXGSW),BYGSW+DBLE(HYGSW),
-     *                   BZGSW+DBLE(HZGSW)
-        ENDDO
-      ENDDO
+              CALL DIP_08 (XGSW(i),YGSW(j),
+     *               ZGSW(k),DXGSW,DYGSW,DZGSW)
+              CALL IGRF_GSW_08 (XGSW(i),YGSW(j),
+     *               ZGSW(k),IXGSW,IYGSW,IZGSW)
+C -- Save output to file
+              WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
+     *                       DXGSW+EBX,
+     *                       DYGSW+EBY,
+     *                       DZGSW+EBZ
+            ENDDO loop_x
+          ENDDO loop_y
+        ENDDO loop_z
+      
+      END DO loop_file
 
-      CLOSE(ounit)
-      ENDDO
-      END
+      END PROGRAM BASELINE_TSYGANENKO
+
+
+      function createfilename(ID) result(name)
+            ! Create savefile name based on ID of the line of the inputfile
+            implicit none
+            integer, intent(in) :: ID ! input
+            CHARACTER(len=9) :: name
+            IF (ID < 10) THEN
+                  write (name, "(A3,I1,I1,A4)") "OUT",0,ID,".DAT"
+            ELSE
+                  write (name, "(A3,I2,A4)") "OUT",ID,".DAT"
+            ENDIF
+            print*,name
+      end function createfilename
 

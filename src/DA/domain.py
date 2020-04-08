@@ -9,7 +9,7 @@ import sys
 
 sys.path.append('.')
 
-from DA.preprocess import read_and_parse
+from src.data.preprocess import read_and_parse
 
 def accumulate_values(result, ux, uxx, uxz, x, z):
 
@@ -78,7 +78,7 @@ def get_results(folder, x, z):
 def show_and_save(cor, grid, loc, field, varying, note, filename=None):
 #    if cor.shape[2] < 4:
 #        fig, ax = plt.subplots(1, loc.shape[0], figsize=(12, 6))
-    fig, ax = plt.subplots(2, ceil(loc.shape[0]/2), figsize=(10, 5))
+    fig, ax = plt.subplots(2, ceil(loc.shape[0]/2), figsize=(12, 6))
     axes = np.ndenumerate(ax)
     fig.suptitle('Varying {}, DoI of {}'.format(varying, note))
     for i in range(loc.shape[0]):
@@ -238,7 +238,7 @@ def plot_variance(variance, grid, field, filename):
 def create_image(cor_ext, cor_magn, grid, field, x, z, ind, filename):
     k = list(cor_ext.keys())
     # k = k[1:] # remove first element of the keys
-    fig, axes = plt.subplots(1, len(k), figsize=(10,6), sharey=True)
+    fig, axes = plt.subplots(1, len(k), figsize=(12,6), sharey=True)
     labels = ['(a)', '(b)', '(c)']
     for i, axi in enumerate(axes.flatten()):
         if i < len(k):
