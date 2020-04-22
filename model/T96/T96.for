@@ -171,17 +171,17 @@ C                                         THE INTERPOLATION REGION
        FEXT=0.5*(1.+(SIGMA-S0)/DSIG)
 C
        CALL DIPOLE(PS,X,Y,Z,QX,QY,QZ)
-       BX=(FX+QX)*FINT+OIMFX*FEXT -QX
-       BY=(FY+QY)*FINT+OIMFY*FEXT -QY
-       BZ=(FZ+QZ)*FINT+OIMFZ*FEXT -QZ
+       BX=(FX+QX)*FINT+OIMFX*FEXT !-QX
+       BY=(FY+QY)*FINT+OIMFY*FEXT !-QY
+       BZ=(FZ+QZ)*FINT+OIMFZ*FEXT !-QZ
 c
         ENDIF  !   THE CASES (1) AND (2) ARE EXHAUSTED; THE ONLY REMAINING
 C                      POSSIBILITY IS NOW THE CASE (3):
          ELSE
                 CALL DIPOLE(PS,X,Y,Z,QX,QY,QZ)
-                BX=OIMFX-QX
-                BY=OIMFY-QY
-                BZ=OIMFZ-QZ
+                BX=OIMFX!-QX
+                BY=OIMFY!-QY
+                BZ=OIMFZ!-QZ
          ENDIF
 C
        RETURN

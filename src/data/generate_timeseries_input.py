@@ -50,10 +50,9 @@ def main():
 
     ref = frames.drop(columns=['Np'])
     ref.to_csv('model/input/input_ref.csv')
-    
+    print(values)
     for i, vx in enumerate(values):
         new_frame = update_value(param, vx, frames)
-        print(new_frame.PDYN)
         new_frame.to_csv('model/input/input{}.csv'.format(i+1))
 
 

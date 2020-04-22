@@ -119,16 +119,23 @@ def generate_single_variable(base, variable, mu, sigma, sign=None):
 @click.argument('variable', type=str, nargs=-1)
 @click.argument('mu', type=float, default=0)
 @click.argument('sigma', type=float, default=0.05)
-@click.argument('amount', type=int, default=100)
+@click.argument('amount', type=int, default=50)
+@click.argument('name', type=str)
 @click.option('--sign', type=bool, default=False)
-def main(variable, mu, sigma, amount, sign):
+def main(variable, mu, sigma, amount, sign, name):
     data = read_tsyg_data()
-    timestamp = '2004-05-08 09:05:00'
-    data = extract_date_data(data, timestamp)
-    #states = generate_perturbed_input(data, variable, mu, sigma, amount, sign)
-    states = generate_perturbed_input(data, variable, mu, sigma, amount, sign)
-    print(states)
-    states.to_csv('model/input/input_{}.csv'.format(variable[0]))
+    rnge = pd.date_range('2004-05-08 09:05:00', '2004-05-08 13:05:00', freq='20min')
+    for i in range(12):
+        timestamp = str(rnge[i])
+        print(timestamp)
+        values = extract_date_data(data, timestamp)
+        #states = generate_perturbed_input(data, variable, mu, sigma, amount, sign)
+        states = generate_perturbed_input(values, variable, mu, sigma, amount, sign)
+        states = states.drop(columns=['Np'])
+        print(states.head())
+        if i == 9:
+            states.Bz += 1.9
+        states.to_csv('model/input/input{}{}.csv'.format(name, (i+1)))
 
 def gaussian_dist(base, mu, sigma, maxv=-363.0, minv=-583.0, size=50, seed=4255):
     np.random.seed(seed)

@@ -9,7 +9,7 @@ C Make sure the geopack is also in this folder.
       COMMON /GEOPACK1/ AA,SPS,CPS,BB,PSI,CC
 
       EXTERNAL DIP_08, IGRF_GSW_08
-      EXTERNAL TA_2015_B ! DOUBLE PRECISION
+      EXTERNAL TA_2015_N ! DOUBLE PRECISION
 C Placeholder name, give name of TS model here
       
 C Define boundary
@@ -42,25 +42,24 @@ C Read file with parameters
       INTEGER, PARAMETER :: iunit=21
       INTEGER :: status 
       CHARACTER(100) :: inputfold
-      CHARACTER(len=6) :: outfolder
+      CHARACTER(100) :: outfolder
       CHARACTER(len=9) :: createfilename
 C Read command line arguments
       INTEGER :: num_args, ix
       CHARACTER(len=12) :: inputfile
       
       num_args = command_argument_count()
-      IF (num_args == 0) ERROR STOP
-      IF (num_args > 1) ERROR STOP
+      IF (num_args < 1) ERROR STOP
+      IF (num_args > 2) ERROR STOP
 
       call get_command_argument(1,inputfile)
       write(*, *) 'Input is ', TRIM(inputfile)
-
+      call get_command_argument(2,outfolder)
+      write(*, *) 'Outputfolder is ', TRIM(outfolder)
 C And done
       inputfold='/mnt/c/Users/u0124144/'//
      *          'Documents/Tsyganenko/model/input/'//
      *          TRIM(ADJUSTL(inputfile))//'.csv'
-      outfolder = 'output'
-
 
       dx = (fin(1) - init(1)) / DIMX
       dy = (fin(2) - init(2)) / DIMY
@@ -91,7 +90,7 @@ C Skip first line
         PARMOD(1) = PDYN
         PARMOD(2) = By
         PARMOD(3) = Bz
-        PARMOD(4) = B
+        PARMOD(4) = N
         PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
 
         CALL RECALC_08 (IYEAR,IDOY,IHOUR,IMINUTE,0,
@@ -101,24 +100,24 @@ C Skip first line
             EXIT
         END IF
 
-        OPEN (UNIT=ounit,FILE=outfolder//"/"//createfilename(ID),
+        OPEN (UNIT=ounit,FILE=TRIM(outfolder)//"/"//createfilename(ID),
      *   ACTION="write", STATUS="replace")
         loop_z: DO k = 1, DIMZ
           loop_y: DO j = 1, DIMY
             loop_x: DO i = 1, DIMX
-              CALL TA_2015_B (IOPT,PARMOD,DBLE(PSI),
+              CALL TA_2015_N (IOPT,PARMOD,DBLE(PSI),
      *                   XGSW(i),YGSW(j),ZGSW(k),
      *                   EBX,EBY,EBZ)
 C -- Routines to include internal B field:
-               CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
-     *               REAL(ZGSW(k)),DXGSW,DYGSW,DZGSW)
+C               CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+C     *               REAL(ZGSW(k)),DXGSW,DYGSW,DZGSW)
                CALL IGRF_GSW_08 (REAL(XGSW(i)),REAL(YGSW(j)),
      *               REAL(ZGSW(k)),IXGSW,IYGSW,IZGSW)
 C -- Save output to file
               WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
-     *                       DXGSW+IXGSW+EBX,
-     *                       DYGSW+IYGSW+EBY,
-     *                       DZGSW+IZGSW+EBZ
+     *                       EBX+IXGSW,
+     *                       EBY+IYGSW,
+     *                       EBZ+IZGSW
             ENDDO loop_x
           ENDDO loop_y
         ENDDO loop_z

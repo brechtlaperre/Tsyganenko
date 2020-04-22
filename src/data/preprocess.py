@@ -60,11 +60,12 @@ def read_and_parse(source, background=False):
     x, y, z, Btx, Bty, Btz = np.genfromtxt(source, unpack=True)
 
     x = x.astype(np.float64)
-    x = np.round(x, decimals=3)
+    x = np.round(x, decimals=2)
     y = y.astype(np.float64)
-    y = np.round(y, decimals=3)
+    y = np.round(y, decimals=2)
     z = z.astype(np.float64)
-    z = np.round(z, decimals=3)
+    z = np.round(z, decimals=2)
+
 
 
     nx = np.where(x[1:] == x[0])[0][0] + 1
@@ -76,9 +77,17 @@ def read_and_parse(source, background=False):
     # Reshape results back to the dimensions used in the original program
     # Create and scale the grid, reverse x and z axis
 
+    xmin = np.min(x)
+    xmax = np.max(x)
+    zmin = np.min(z)
+    zmax = np.max(z)
+
+    x, z = np.meshgrid(np.arange(xmin, xmax, (xmax-xmin)/nx), np.arange(zmin, zmax, (zmax-zmin)/nz))
+
     x   = x.reshape((nz,ny,nx))
     y   = y.reshape((nz,ny,nx))
     z   = z.reshape((nz,ny,nx))
+
     x   = np.squeeze(x) #* (R_sim/di)
     y   = np.squeeze(y) #* (R_sim/di)
     z   = np.squeeze(z) #* (R_sim/di)

@@ -41,24 +41,25 @@ C Read file with parameters
       INTEGER, PARAMETER :: iunit=21
       INTEGER :: status 
       CHARACTER(100) :: inputfold
-      CHARACTER(len=6) :: outfolder
+      CHARACTER(100) :: outfolder
       CHARACTER(len=9) :: createfilename
 C Read command line arguments
       INTEGER :: num_args, ix
       CHARACTER(len=12) :: inputfile
       
       num_args = command_argument_count()
-      IF (num_args == 0) ERROR STOP
-      IF (num_args > 1) ERROR STOP
+      IF (num_args < 1) ERROR STOP
+      IF (num_args > 2) ERROR STOP
 
       call get_command_argument(1,inputfile)
       write(*, *) 'Input is ', TRIM(inputfile)
-
+      call get_command_argument(2,outfolder)
+      write(*, *) 'Outputfolder is ', TRIM(outfolder)
 C And done
+
       inputfold='/mnt/c/Users/u0124144/'//
      *          'Documents/Tsyganenko/model/input/'//
      *          TRIM(ADJUSTL(inputfile))//'.csv'
-      outfolder = 'output'
       dx = nint((fin(1) - init(1)) / DIMX * 1000.0) * 1E-3
       dy = nint((fin(2) - init(2)) / DIMY * 1000.0) * 1E-3
       dz = nint((fin(3) - init(3)) / DIMZ * 1000.0) * 1E-3
@@ -86,7 +87,7 @@ C Skip first line
       
         write(*, *) 'Generating file ', ID
 
-        CALL RECALC_08 (IYEAR,IDOY,IHOUR,IMINUTE,0,VX,VY,VZ)
+        CALL RECALC_08 (IYEAR,IDOY,IHOUR,IMINUTE,0,-400.,0.0,0.0)
 
         IF (status < 0) THEN
             EXIT
@@ -98,7 +99,7 @@ C Skip first line
         PARMOD(4) = Bz
         PARMOD(5:10) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
 
-        OPEN (UNIT=ounit,FILE=outfolder//"/"//createfilename(ID),
+        OPEN (UNIT=ounit,FILE=TRIM(outfolder)//"/"//createfilename(ID),
      *   ACTION="write", STATUS="replace")
 
         loop_z: DO k = 1, DIMZ
@@ -110,13 +111,11 @@ C Skip first line
 C -- Routines to include internal B field:
                CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
      *               REAL(ZGSW(k)),DXGSW,DYGSW,DZGSW)
-               CALL IGRF_GSW_08 (REAL(XGSW(i)),REAL(YGSW(j)),
-     *               REAL(ZGSW(k)),IXGSW,IYGSW,IZGSW)
 C -- Save output to file
               WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
-     *                       DXGSW+EBX,
-     *                       DYGSW+EBY,
-     *                       DZGSW+EBZ
+     *                       EBX,
+     *                       EBY,
+     *                       EBZ
             ENDDO loop_x
           ENDDO loop_y
         ENDDO loop_z
