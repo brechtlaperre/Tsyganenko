@@ -20,7 +20,7 @@ def create_image(grid, field, dict_field, time, model, save_to):
                 for k in keys:
                     dict_field[k][i,j] = 0
 
-    fig, axes = plt.subplots(1, len(k), figsize=(10,6), squeeze=True)
+    fig, axes = plt.subplots(1, len(keys), figsize=(10,6), squeeze=True)
     labels = ['(a)', '(b)', '(c)']
     for i, key in enumerate(keys):
         surf = axes[i].imshow(dict_field[key], origin='lower', cmap=plt.get_cmap('coolwarm'), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]), vmin=-50, vmax=50)

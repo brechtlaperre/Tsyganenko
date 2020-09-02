@@ -109,13 +109,15 @@ C Skip first line
      *                    XGSW(i),YGSW(j),ZGSW(k),
      *                   EBX,EBY,EBZ)
 C -- Routines to include internal B field:
-               CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
-     *               REAL(ZGSW(k)),DXGSW,DYGSW,DZGSW)
+C               CALL DIP_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+C     *               REAL(ZGSW(k)),DXGSW,DYGSW,DZGSW)
+                CALL IGRF_GSW_08 (REAL(XGSW(i)),REAL(YGSW(j)),
+     *                REAL(ZGSW(k)),IXGSW,IYGSW,IZGSW)
 C -- Save output to file
               WRITE(ounit,*) XGSW(i),YGSW(j),ZGSW(k),
-     *                       EBX,
-     *                       EBY,
-     *                       EBZ
+     *                       EBX + IXGSW,
+     *                       EBY + IYGSW,
+     *                       EBZ + IZGSW
             ENDDO loop_x
           ENDDO loop_y
         ENDDO loop_z

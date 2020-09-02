@@ -4,12 +4,10 @@ Created on Wed Nov  4 12:33:00 2015
 
 @author: murcielago
 """
-#%%
 import numpy as np
 import matplotlib.pyplot as plt
 from DA.preprocess import read_and_parse
 
-#%%
 
 def plotMagneticField(x, y, Bx, By, Bm=None):
    
@@ -49,9 +47,6 @@ def plotMagneticField(x, y, Bx, By, Bm=None):
     plt.plot(x[2,:],np.log10(Bm[2,:]))
     plt.title("Magnetic field strength")
     """
-#%%
-%pwd
-#%%
 #if __name__ == '__main__':
 import seaborn as sns
 sns.set(context='paper', style='dark')
@@ -68,6 +63,3 @@ for files in filename:
     plt.savefig('Tsyg_example.png', format='png', dpi=500)
     #plotMagneticField(grid[0], grid[2], total[0], total[2], size[0])
 
-   
-
-#%%

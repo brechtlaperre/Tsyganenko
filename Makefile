@@ -4,7 +4,7 @@
 PYTHON := python3
 
 # Parameters
-MODEL=TA15
+MODEL=T96
 FEATURE='Vx'
 NAME:='Vx4'
 INPUT='input'$(NAME)
@@ -68,22 +68,24 @@ movie:
 	$(PYTHON) src/visualize/generate_images.py $(INPUT) $(MODEL) $(OUTPUT)
 	ffmpeg -r 1 -i movies/$(MODEL)/$(INPUT)/frame%02d.png -vcodec mpeg4 -y movies/$(MODEL)/$(INPUT)/movie.mp4
 	
-LAST := 12
-NUMBERS := $(shell seq 1 $(LAST))
+FIRST := 5
+LAST := 6
+NUMBERS := $(shell seq $(FIRST) $(LAST))
 JOBS := $(addprefix Vx,${NUMBERS})
 IMAGES := $(addprefix Vx,${NUMBERS})
 .PHONY: all ${JOBS}
+RESFOLDER = results2
 jobs: compile ${JOBS} ; echo "$@ success"
 ${JOBS}:
-	$(eval OUTPUT = output'$@')
+	$(eval OUTPUT = output2'$@')
 	$(eval INPUT = input'$@')
 	$(shell @if [ ! -d model/$(MODEL)/$(OUTPUT) ]; then mkdir model/$(MODEL)/$(OUTPUT); fi;)
-	$(shell @if [ ! -d results/$(MODEL)/$(OUTPUT) ]; then mkdir results/$(MODEL)/$(OUTPUT); fi;)
+	$(shell @if [ ! -d $(RESFOLDER)/$(MODEL)/$(OUTPUT) ]; then mkdir $(RESFOLDER)/$(MODEL)/$(OUTPUT); fi;)
 	#(cd 'model/$(MODEL)'; ./$(MODEL).e $(INPUT) $(OUTPUT) )
-	$(PYTHON) src/DA/domain.py model/$(MODEL)/$(OUTPUT) $(FEATURE)  $(X1) $(Z1) --extra $(X2) $(Z2) --extra $(X3) $(Z3) --extra $(X4) $(Z4) --extra $(X5) $(Z5) --identifier $(IMAGEID) --folder results/$(MODEL)/$(OUTPUT)/ --model $(MODEL) --datafile model/input/$(INPUT).csv
+	$(PYTHON) src/DA/domain.py model/$(MODEL)/$(OUTPUT) $(FEATURE)  $(X1) $(Z1) --extra $(X2) $(Z2) --extra $(X3) $(Z3) --extra $(X4) $(Z4) --extra $(X5) $(Z5) --identifier $(IMAGEID) --folder $(RESFOLDER)/$(MODEL)/$(OUTPUT)/ --model $(MODEL) --datafile model/input/$(INPUT).csv
 	
 vxmovie:
-	(cd results/$(MODEL); pwd; ls outputVx*/$(MODEL)_Vx_'$(X1)'_$(Z1)_t+*.png | sort -V | xargs -I {} echo "file '{}'" > vxfiles1.txt)
+	(cd results/$(MODEL); ls outputVx*/$(MODEL)_Vx_'$(X1)'_$(Z1)_t+*.png | sort -V | xargs -I {} echo "file '{}'" > vxfiles1.txt)
 	(cd results/$(MODEL); ls outputVx*/$(MODEL)_Vx_$(X2)_$(Z2)_t+*.png | sort -V | xargs -I {} echo "file '{}'" > vxfiles2.txt)
 	(cd results/$(MODEL); ls outputVx*/$(MODEL)_Vx_$(X3)_$(Z3)_t+*.png | sort -V | xargs -I {} echo "file '{}'" > vxfiles3.txt)
 	(cd results/$(MODEL); ls outputVx*/$(MODEL)_Vx_$(X4)_$(Z4)_t+*.png | sort -V | xargs -I {} echo "file '{}'" > vxfiles4.txt)
@@ -96,10 +98,10 @@ test:
 	$(PYTHON) src/DA/domain.py model/$(MODEL)/$(OUTPUT) $(FEATURE)  $(X1) $(Z1) --extra $(X2) $(Z2) --extra $(X3) $(Z3) --extra $(X4) $(Z4) --identifier $(IMAGEID) --folder results/$(MODEL)/$(OUTPUT)/ --model $(MODEL) --datafile model/input/$(INPUT).csv
 
 reference: compile
-	$(eval OUTPUT = outputref)
+	$(eval OUTPUT = outputref2)
 	$(eval INPUT = input_ref)
 	$(shell @if [ ! -d model/$(MODEL)/$(OUTPUT) ]; then mkdir model/$(MODEL)/$(OUTPUT); fi;)
-	$(shell @if [ ! -d results/$(MODEL)/$(OUTPUT) ]; then mkdir results/$(MODEL)/$(OUTPUT); fi;)
+	$(shell @if [ ! -d results2/$(MODEL)/$(OUTPUT) ]; then mkdir results2/$(MODEL)/$(OUTPUT); fi;)
 	(cd 'model/$(MODEL)'; ./$(MODEL).e $(INPUT) $(OUTPUT) )
-	$(PYTHON) src/visualize/generate_images.py $(INPUT) $(MODEL) $(OUTPUT) results
+	$(PYTHON) src/visualize/generate_images.py $(INPUT) $(MODEL) $(OUTPUT) results2
 	#ffmpeg -r 1 -i results/$(MODEL)/$(OUTPUT)/frame%02d.png -vcodec mpeg4 -y results/$(MODEL)/$(OUTPUT)/movie.mp4

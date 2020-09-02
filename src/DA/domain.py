@@ -120,6 +120,7 @@ def compute_matrix_coords(folder, x, z):
 def main(source, varying, coords, extra, identifier, folder, model, datafile):
     sns.set(context='paper', style='white', palette='deep', font_scale=1.5)
     sns.set_style('ticks')
+    id = source.split('/')[-1].split('x')[-1]
 
     x_coords = [coords[0]]
     z_coords = [coords[1]]
@@ -134,7 +135,6 @@ def main(source, varying, coords, extra, identifier, folder, model, datafile):
 
     grid, cor_ext, cor_magn, field, variance, mean = get_results(source, x, z)
 
-
     base = pd.Timestamp('2004-05-08 09:00:00')
     src = pd.read_csv(datafile, index_col=0)
     ref = src.iloc[0,:]
@@ -148,6 +148,9 @@ def main(source, varying, coords, extra, identifier, folder, model, datafile):
 
     f = filename + 'mean_t+{}'.format(strTime)
     plot_mean(mean, grid, field, f, model, strTime)
+
+    f = filename + 'diff_mean_t+{}'.format(strTime)
+    plot_mean_vs_ref(mean, model, id, strTime, f)
 
     for ind, (xs, zs) in enumerate(pos):
         f = filename + '{}_{}_t+{}'.format(int(x_coords[ind]),int(z_coords[ind]), strTime)
@@ -166,7 +169,7 @@ def plot_mean(mean, grid, field, filename, model, time):
     fig, axes = plt.subplots(1, len(k), figsize=(10,6), squeeze=True)
     labels = ['(a)', '(b)', '(c)']
     for i, key in enumerate(k):
-        surf = axes[i].imshow(mean[key], origin='lower', cmap=plt.get_cmap('coolwarm'), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]), vmin=-300, vmax=300)
+        surf = axes[i].imshow(mean[key], origin='lower', cmap=plt.get_cmap('coolwarm'), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]), vmin=-100, vmax=100)
         axes[i].streamplot(grid[0], grid[2], field[0], field[2], density=.85, linewidth=1, color='k', arrowsize=.5)
         axes[i].plot(0, 0, 'ko')
         axes[i].set_title(r'{}, Mean, {}[nT], $t_0$ + {} min'.format(model, key, time))
@@ -214,6 +217,47 @@ def plot_DOI(doi, grid, field, x, z, ind, filename, model, time):
     plt.tight_layout()
     plt.savefig(filename+'.png', dpi=300, format='png', transparent=False, bbox_inches='tight', pad_inches=0)
     plt.close()
+
+def plot_mean_vs_ref(mean, model, id, time, filename):
+    grid, field, _ ,_ ,_  = read_and_parse('model/{}/outputref2/OUT{:02d}.DAT'.format(model, int(id)-1))
+    dict_field = {'Bx': field[0], 'By': field[1], 'Bz': field[2]}
+    keys = list(dict_field.keys())
+    del(keys[1])
+    
+    for i in range(field[0].shape[0]):
+        for j in range(field[2].shape[1]):
+            if grid[0][i,j]**2 + grid[2][i,j]**2 <= 1.8:
+                for k in keys:
+                    dict_field[k][i,j] = 0
+                    mean[k][i,j] = 0
+
+    fig, axes = plt.subplots(1, len(keys), figsize=(10,6), squeeze=True)
+    labels = ['(a)', '(b)', '(c)']
+
+    for i, key in enumerate(keys):
+        surf = axes[i].imshow(np.log(np.abs(dict_field[key] - mean[key])+0.001), origin='lower', cmap=plt.get_cmap('coolwarm'), extent=(grid[0][0,0], grid[0][0,-1], grid[2][0,0], grid[2][-1, 0]))
+        axes[i].streamplot(grid[0], grid[2], field[0], field[2], density=1.1, linewidth=1, color='k', arrowsize=.5)
+        axes[i].plot(0, 0, 'ko')
+        axes[i].set_title(r'{}, Difference, {}[nT], $t_0$ + {} min'.format(model, key, time))
+        axes[i].set_xticks(np.arange(-40, 21, 10.0))
+        axes[i].tick_params(direction='out')
+        axes[i].set_xlim(np.min(grid[0]), np.max(grid[0]))
+        axes[i].set_ylim(np.min(grid[2]),np.max(grid[2]))
+        axes[i].set_xlabel(r'x/$R_E$')
+        axes[i].set_ylabel(r'z/$R_E$')
+        # axes[i].text(0.05, 1.1, labels[i], transform=axes[i].transAxes, fontsize=12, va='top', ha='right')
+        divider = make_axes_locatable(axes[i])
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        if i < 1:
+            plt.colorbar(surf, cax=cax)
+        else:
+            plt.colorbar(surf, cax=cax, label='Log(|Reference - Mean|)')
+        
+    plt.tight_layout()
+    plt.savefig(filename+'.png', dpi=300, format='png', transparent=False, bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+
 
 if __name__ == '__main__':
     main()
