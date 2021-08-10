@@ -6,19 +6,19 @@ __collaborator:__ Maria-Elena Innocenti
 
 ## Publication
 
-This code has been used to perform the experiments for the section 'Tsyganenko' in the accepted paper
+This code has been used to perform the experiments for the section 'Tsyganenko' in the published paper
 
-__Domain of Influence analysis: implications for Data Assimilation in space weather forecasting__
+[__Domain of Influence analysis: implications for Data Assimilation in space weather forecasting__](https://www.frontiersin.org/articles/10.3389/fspas.2020.571286/full)
 
-__authors__: 
-Dimitrios Millas,
-Maria Elena Innocenti,
-Brecht Laperre,
-Joachim Raeder,
-Stefaan Poedts and
+__authors__:   
+Dimitrios Millas,  
+Maria Elena Innocenti,  
+Brecht Laperre,  
+Joachim Raeder,  
+Stefaan Poedts and  
 Giovanni Lapenta
 
-The paper has been accepted and will be published in [__Frontiers in Astronomy and Space Sciences Stellar and Solar Physics__](https://www.frontiersin.org/journals/603).
+The paper has been published in [__Frontiers in Astronomy and Space Sciences Stellar and Solar Physics__](https://www.frontiersin.org/journals/603).
 
 ## Instructions
 
